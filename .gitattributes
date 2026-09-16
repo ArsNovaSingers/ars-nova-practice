@@ -1,0 +1,6 @@
+player-src export-ignore
+.gitattributes export-ignore
+.gitignore export-ignore
+* text=auto eol=lf
+*.png binary
+*.wav binary

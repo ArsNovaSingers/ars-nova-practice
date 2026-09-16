@@ -1,0 +1,99 @@
+/* Ars Nova Practice — wp-admin screens. */
+.anpr-admin .anpr-picker { margin: 1rem 0; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.anpr-admin .anpr-links { margin: 0 0 1rem; }
+.anpr-admin .anpr-toolbar { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.anpr-admin .anpr-savebar {
+	position: sticky;
+	bottom: 0;
+	background: #f0f0f1;
+	padding: 0.75rem 0;
+	border-top: 1px solid #c3c4c7;
+	display: flex;
+	gap: 1rem;
+	align-items: center;
+	z-index: 5;
+}
+.anpr-admin .anpr-dirty { color: #b32d2e; font-weight: 600; }
+.anpr-admin .anpr-emptystate { font-size: 1.1em; }
+
+.anpr-week-edit {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-left: 4px solid #dba617;
+	margin: 0 0 1rem;
+	padding: 0 1rem 0.5rem;
+}
+.anpr-week-edit.is-published { border-left-color: #00a32a; }
+.anpr-week-edit > summary {
+	cursor: pointer;
+	padding: 0.75rem 0;
+	font-size: 1.1em;
+	font-weight: 600;
+}
+.anpr-badge {
+	display: inline-block;
+	padding: 0.1rem 0.5rem;
+	border-radius: 999px;
+	font-size: 0.75em;
+	background: #fcf0c3;
+	color: #6b4e00;
+	vertical-align: middle;
+}
+.is-published .anpr-badge { background: #d7f5dd; color: #0a5d1c; }
+
+.anpr-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+	gap: 0.5rem 1rem;
+}
+.anpr-field { margin: 0.5rem 0; }
+.anpr-field > label,
+.anpr-label { display: block; font-weight: 600; margin-bottom: 0.2rem; }
+.anpr-field .description { margin: 0.2rem 0 0; }
+
+.anpr-task-list { margin: 1rem 0 0; padding: 0; list-style: none; }
+.anpr-task-edit {
+	border: 1px solid #dcdcde;
+	background: #f6f7f7;
+	padding: 0.5rem 0.75rem;
+	margin: 0 0 0.75rem;
+}
+.anpr-row { display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; }
+.anpr-row .anpr-field:nth-child(2) { flex: 1 1 18rem; }
+.anpr-row .anpr-field input.regular-text { width: 100%; }
+.anpr-num { font-size: 1.4em; font-weight: 600; padding-bottom: 0.9rem; }
+.anpr-rowtools { display: flex; gap: 0.3rem; align-items: center; padding-bottom: 0.6rem; }
+.anpr-parts { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; }
+.anpr-mats { margin: 0 0 0.5rem; padding: 0; list-style: none; }
+.anpr-mat {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem 0.75rem;
+	align-items: center;
+	padding: 0.35rem 0;
+	border-bottom: 1px dashed #dcdcde;
+}
+.anpr-mat.is-missing .anpr-mat-name { color: #b32d2e; }
+.anpr-mat-name { flex: 1 1 16rem; }
+.anpr-trackbits { display: inline-flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.anpr-attach { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.anpr-attach select { max-width: 32rem; }
+.anpr-remove { color: #b32d2e !important; }
+.anpr-weektools { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; border-top: 1px solid #dcdcde; padding-top: 0.75rem; }
+
+/* progress */
+.anpr-cards { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0; }
+.anpr-card {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	padding: 0.75rem 1rem;
+	min-width: 11rem;
+}
+.anpr-card-num { display: block; font-size: 1.8em; font-weight: 600; line-height: 1.2; }
+.anpr-attention li { color: #8a2424; }
+.anpr-staff-note { background: #fcf0c3; padding: 0.5rem 0.75rem; }
+.anpr-table-wrap { overflow-x: auto; }
+.anpr-report th small { font-weight: 400; color: #646970; }
+.anpr-report td.anpr-cell-done { background: #edfaef; }
+.anpr-dim { color: #8c8f94; }
+.anpr-notseen { margin: 0.5rem 0 1rem; }

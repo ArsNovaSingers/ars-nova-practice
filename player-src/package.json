@@ -1,0 +1,18 @@
+{
+  "name": "ars-nova-practice-player",
+  "private": true,
+  "description": "Builds assets/player/ for the Ars Nova Practice add-on. Not shipped in the plugin zip.",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@dawcore/components": "0.0.37",
+    "@dawcore/transport": "0.0.14",
+    "@waveform-playlist/core": "12.6.1",
+    "@waveform-playlist/engine": "13.6.0",
+    "@waveform-playlist/worklets": "13.0.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

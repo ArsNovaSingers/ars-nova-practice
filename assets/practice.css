@@ -1,0 +1,295 @@
+/**
+ * Ars Nova Practice — singer page.
+ * Uses the Hub's colour tokens (--ansp-accent etc.) so it looks like the rest
+ * of the Singers Hub. Large touch targets: this page is used on iPads with the
+ * music open next to it.
+ */
+
+.anpr-page {
+	--anpr-accent: var(--ansp-accent, #1d3557);
+	--anpr-soft: var(--ansp-accent-soft, #eef2f8);
+	--anpr-border: var(--ansp-border, #dfe3ea);
+	--anpr-radius: var(--ansp-radius, 10px);
+	--anpr-done: #2e7d4f;
+	--anpr-muted: #5b6472;
+	margin-top: 0.5rem;
+}
+
+.anpr-sr {
+	position: absolute !important;
+	width: 1px; height: 1px;
+	margin: -1px; padding: 0; border: 0;
+	overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+.anpr-privacy,
+.anpr-footnote {
+	margin: 0 0 1rem;
+	font-size: 0.85em;
+	color: var(--anpr-muted);
+}
+.anpr-footnote { margin: 1.25rem 0 0; }
+
+.anpr-staff-hint,
+.anpr-staff-badge {
+	margin: 0 0 1rem;
+	padding: 0.5rem 0.75rem;
+	border-left: 4px solid #c98a00;
+	background: #fff7e0;
+	font-size: 0.9em;
+}
+
+.anpr-project + .anpr-project { margin-top: 2rem; }
+.anpr-project-title { margin: 0 0 0.75rem; font-size: 1.2rem; }
+
+/* ---------- week ---------- */
+.anpr-week {
+	border: 1px solid var(--anpr-border);
+	border-radius: var(--anpr-radius);
+	background: #fff;
+	padding: 1rem 1rem 0.5rem;
+	margin: 0 0 1rem;
+}
+.anpr-week.is-current { border-color: var(--anpr-accent); box-shadow: 0 1px 0 var(--anpr-accent); }
+
+.anpr-week-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+}
+.anpr-kicker {
+	margin: 0 0 0.2rem;
+	font-size: 0.8em;
+	font-weight: 600;
+	letter-spacing: 0.03em;
+	text-transform: uppercase;
+	color: var(--anpr-accent);
+}
+.anpr-week-title { margin: 0; font-size: 1.25rem; line-height: 1.25; }
+.anpr-week-meta { margin: 0.2rem 0 0; font-size: 0.9em; color: var(--anpr-muted); }
+
+.anpr-ring {
+	--anpr-pct: 0;
+	flex: 0 0 auto;
+	width: 3.6rem;
+	height: 3.6rem;
+	border-radius: 50%;
+	background: conic-gradient(var(--anpr-done) calc(var(--anpr-pct) * 1%), var(--anpr-soft) 0);
+	display: grid;
+	place-items: center;
+	position: relative;
+}
+.anpr-ring::before {
+	content: "";
+	position: absolute;
+	inset: 0.35rem;
+	border-radius: 50%;
+	background: #fff;
+}
+.anpr-ring-text { position: relative; font-weight: 700; font-size: 0.95em; }
+
+.anpr-note {
+	margin: 0.9rem 0 0;
+	padding: 0.6rem 0.85rem;
+	background: var(--anpr-soft);
+	border-radius: 8px;
+}
+.anpr-note-label {
+	margin: 0 0 0.2rem;
+	font-size: 0.75em;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--anpr-muted);
+}
+.anpr-note p { margin: 0 0 0.4rem; }
+
+/* ---------- tasks ---------- */
+.anpr-tasks { list-style: none; margin: 1rem 0 0; padding: 0; }
+.anpr-task {
+	border-top: 1px solid var(--anpr-border);
+	padding: 0.9rem 0;
+}
+.anpr-task-head { display: flex; gap: 0.75rem; align-items: flex-start; }
+.anpr-task-titles { min-width: 0; }
+.anpr-task-title { margin: 0; font-size: 1.05rem; line-height: 1.3; }
+.anpr-task-num { color: var(--anpr-muted); font-weight: 400; margin-right: 0.15em; }
+.anpr-task-meta { margin: 0.15rem 0 0; font-size: 0.85em; color: var(--anpr-muted); }
+.anpr-task.is-done .anpr-task-title { color: var(--anpr-done); }
+.anpr-task-detail { margin: 0.5rem 0 0 2.75rem; }
+.anpr-task-detail p { margin: 0 0 0.4rem; }
+
+.anpr-done { position: relative; flex: 0 0 auto; cursor: pointer; }
+.anpr-done input {
+	position: absolute;
+	opacity: 0;
+	width: 2rem; height: 2rem;
+	margin: 0;
+	cursor: pointer;
+}
+.anpr-done-box {
+	display: block;
+	width: 2rem;
+	height: 2rem;
+	border: 2px solid var(--anpr-border);
+	border-radius: 8px;
+	background: #fff;
+}
+.anpr-done input:focus-visible + .anpr-done-box { outline: 3px solid var(--anpr-accent); outline-offset: 2px; }
+.anpr-done input:checked + .anpr-done-box {
+	background: var(--anpr-done);
+	border-color: var(--anpr-done);
+}
+.anpr-done input:checked + .anpr-done-box::after {
+	content: "";
+	display: block;
+	width: 0.55rem;
+	height: 1rem;
+	margin: 0.25rem auto 0;
+	border: solid #fff;
+	border-width: 0 3px 3px 0;
+	transform: rotate(45deg);
+}
+
+.anpr-task-links,
+.anpr-practice,
+.anpr-rating { margin: 0.6rem 0 0 2.75rem; }
+.anpr-task-links { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+.anpr-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 2.5rem;
+	padding: 0.45rem 0.9rem;
+	border: 1px solid var(--anpr-border);
+	border-radius: 8px;
+	background: #fff;
+	color: var(--anpr-accent) !important;
+	font: inherit;
+	font-size: 0.95em;
+	line-height: 1.2;
+	text-decoration: none;
+	cursor: pointer;
+}
+.anpr-btn:hover { border-color: var(--anpr-accent); }
+.anpr-btn:focus-visible { outline: 3px solid var(--anpr-accent); outline-offset: 2px; }
+.anpr-btn--primary {
+	background: var(--anpr-accent);
+	border-color: var(--anpr-accent);
+	color: #fff !important;
+}
+.anpr-btn[disabled] { opacity: 0.5; cursor: default; }
+.anpr-btn[aria-pressed="true"] {
+	background: var(--anpr-accent);
+	border-color: var(--anpr-accent);
+	color: #fff !important;
+}
+
+.anpr-practice-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+.anpr-plays { font-size: 0.85em; color: var(--anpr-muted); }
+.anpr-player-host { margin-top: 0.75rem; }
+
+/* ---------- rating ---------- */
+.anpr-rating { max-width: 24rem; }
+.anpr-rating-label { display: block; font-size: 0.85em; font-weight: 600; margin-bottom: 0.25rem; }
+.anpr-rating input[type="range"] { width: 100%; margin: 0; accent-color: var(--anpr-accent); height: 2rem; }
+.anpr-rating.is-unrated input[type="range"] { accent-color: #b8bfca; opacity: 0.7; }
+.anpr-rating-scale {
+	display: flex;
+	justify-content: space-between;
+	font-size: 0.75em;
+	color: var(--anpr-muted);
+}
+.anpr-rating-out { display: block; margin-top: 0.15rem; font-size: 0.85em; font-weight: 600; }
+.anpr-rating.is-unrated .anpr-rating-out { font-weight: 400; color: var(--anpr-muted); }
+
+.anpr-task-error { margin: 0.5rem 0 0 2.75rem; color: #a4231b; font-size: 0.9em; }
+.anpr-empty { color: var(--anpr-muted); }
+
+/* ---------- earlier / coming up ---------- */
+.anpr-more { margin: 0 0 1rem; }
+.anpr-more > summary {
+	cursor: pointer;
+	padding: 0.6rem 0.2rem;
+	font-weight: 600;
+	color: var(--anpr-accent);
+}
+.anpr-more .anpr-week { margin-top: 0.5rem; }
+
+/* ---------- player ---------- */
+.anpr-player {
+	border: 1px solid var(--anpr-border);
+	border-radius: var(--anpr-radius);
+	padding: 0.75rem;
+	background: #fbfcfe;
+}
+.anpr-player-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; margin-bottom: 0.6rem; }
+.anpr-time { font-variant-numeric: tabular-nums; font-weight: 600; }
+.anpr-status { font-size: 0.85em; color: var(--anpr-muted); }
+.anpr-daw {
+	display: block;
+	width: 100%;
+	border-radius: 6px;
+	overflow: hidden;
+	--daw-controls-width: 120px;
+	--daw-background: #1d2433;
+	--daw-track-background: #242d40;
+	--daw-controls-background: #1d2433;
+	--daw-wave-color: #9fb4d6;
+	--daw-playhead-color: #ffb74d;
+	--daw-ruler-color: #9fb4d6;
+	--daw-ruler-background: #161b27;
+	--daw-min-height: 80px;
+}
+.anpr-mixer { list-style: none; margin: 0.75rem 0 0; padding: 0; }
+.anpr-mix-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.4rem 1rem;
+	padding: 0.5rem 0;
+	border-top: 1px solid var(--anpr-border);
+}
+.anpr-mix-label { min-width: 10rem; flex: 1 1 12rem; }
+.anpr-mix-name { font-weight: 600; }
+.anpr-mix-part {
+	margin-left: 0.4rem;
+	padding: 0.05rem 0.45rem;
+	border-radius: 999px;
+	background: var(--anpr-soft);
+	font-size: 0.8em;
+}
+.anpr-mix-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.anpr-vol input { width: 7rem; accent-color: var(--anpr-accent); vertical-align: middle; }
+.anpr-ears { display: inline-flex; }
+.anpr-ears .anpr-btn { border-radius: 0; min-width: 3.4rem; }
+.anpr-ears .anpr-btn:first-child { border-radius: 8px 0 0 8px; }
+.anpr-ears .anpr-btn:last-child { border-radius: 0 8px 8px 0; }
+.anpr-ears .anpr-btn + .anpr-btn { margin-left: -1px; }
+
+.anpr-rec {
+	margin-top: 1rem;
+	padding-top: 0.75rem;
+	border-top: 2px dashed var(--anpr-border);
+}
+.anpr-rec-title { margin: 0 0 0.3rem; font-size: 1rem; }
+.anpr-rec-help { margin: 0.2rem 0 0.5rem; font-size: 0.85em; color: var(--anpr-muted); }
+.anpr-rec-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; margin: 0.4rem 0; }
+.anpr-rec-corr { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; font-size: 0.9em; }
+.anpr-rec-corr input { width: 12rem; accent-color: var(--anpr-accent); }
+.anpr-latency { font-size: 0.85em; color: var(--anpr-muted); }
+.anpr-rec-status { margin: 0.3rem 0; font-weight: 600; }
+.anpr-btn--rec.is-recording { background: #a4231b; border-color: #a4231b; color: #fff !important; }
+
+@media (max-width: 600px) {
+	.anpr-task-detail,
+	.anpr-task-links,
+	.anpr-practice,
+	.anpr-rating,
+	.anpr-task-error { margin-left: 0; }
+	.anpr-week { padding: 0.8rem 0.75rem 0.4rem; }
+	.anpr-daw { --daw-controls-width: 92px; }
+}
