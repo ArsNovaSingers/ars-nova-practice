@@ -4,7 +4,7 @@ Tags: choir, practice, assignments, rehearsal
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.1.1
+Stable tag: 0.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,6 +34,9 @@ Drafts are shown to staff on the Hub page itself, so the Hub is the preview.
 The practice player is built on **@dawcore/components** from waveform-playlist by Naomi Aro (MIT License) — https://github.com/naomiaro/waveform-playlist. The built browser bundle is in `assets/player/`, with every bundled licence in `assets/player/THIRD-PARTY-LICENSES.txt` (MIT and BSD-3-Clause, plus waveform-data under LGPL-3.0). Its source, exact versions and build script are in the repository's `player-src/` folder, so the bundle can be rebuilt with any of those libraries replaced.
 
 == Changelog ==
+
+= 0.1.2 =
+* The "Download my take" button no longer shows before a take has been recorded (a button style was overriding `hidden`).
 
 = 0.1.1 =
 * **An attached score no longer goes missing when the Hub changes its id.** The Hub lists a Drive score that has both a hand-entered row and a published mirror copy once, under the mirror copy's id — and under the hand row's id when the mirror library cannot be reached. A task now also finds its material by the title, piece and type saved with it, searching only what that viewer can already see, and never guessing between two matches. Found on staging on 2026-09-16.
