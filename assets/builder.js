@@ -213,7 +213,7 @@
 			if ( ! m ) {
 				return;
 			}
-			task.materials.push( { id: m.id, role: m.playable ? 'track' : 'open', part: '', pan: 'center', muted: false } );
+			task.materials.push( { id: m.id, role: m.playable ? 'track' : 'open', part: '', pan: 'center', muted: false, title: m.title, piece: m.piece, type: m.type } );
 			markDirty();
 			render();
 		} } );
@@ -347,6 +347,18 @@
 		var clean = weeks.map( function ( w ) {
 			var c = JSON.parse( JSON.stringify( w ) );
 			delete c._open;
+			// Keep a snapshot of each attached item so the server can find it
+			// again if the Hub lists it under a different id later.
+			c.tasks.forEach( function ( t ) {
+				t.materials.forEach( function ( m ) {
+					var info = byId[ m.id ];
+					if ( info ) {
+						m.title = info.title;
+						m.piece = info.piece;
+						m.type = info.type;
+					}
+				} );
+			} );
 			return c;
 		} );
 		document.getElementById( 'anpr-weeks-json' ).value = JSON.stringify( clean );

@@ -221,8 +221,26 @@ class ANPR_Admin {
 			</p>
 
 			<?php
+			// Point every attached material at the row it is listed under today
+			// (see ANPR_Weeks::resolve_material), so nothing reads as missing
+			// just because the Hub swapped a score's id.
+			$weeks = ANPR_Weeks::get( $project->ID );
+			$rows  = ANPR_Weeks::materials_by_id( $project->ID, get_current_user_id() );
+			foreach ( $weeks as &$w ) {
+				foreach ( $w['tasks'] as &$t ) {
+					foreach ( $t['materials'] as &$m ) {
+						$row = ANPR_Weeks::resolve_material( $m, $rows, $project->ID );
+						if ( $row ) {
+							$m['id'] = sanitize_key( (string) $row['id'] );
+						}
+					}
+					unset( $m );
+				}
+				unset( $t );
+			}
+			unset( $w );
 			$config = array(
-				'weeks'     => ANPR_Weeks::get( $project->ID ),
+				'weeks'     => $weeks,
 				'materials' => self::builder_materials( $project->ID ),
 				'parts'     => function_exists( 'ansp_voice_part_options' ) ? ansp_voice_part_options() : array(),
 				'today'     => ANPR_Weeks::today(),

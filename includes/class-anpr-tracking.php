@@ -139,9 +139,11 @@ class ANPR_Tracking {
 
 		$material_id = sanitize_key( (string) $req->get_param( 'material_id' ) );
 		if ( '' !== $material_id && null !== $task ) {
-			$ok = false;
+			$ok   = false;
+			$rows = ANPR_Weeks::materials_by_id( $project_id, $user_id );
 			foreach ( $task['materials'] as $m ) {
-				if ( $m['id'] === $material_id ) {
+				$row = ANPR_Weeks::resolve_material( $m, $rows, $project_id );
+				if ( $m['id'] === $material_id || ( $row && sanitize_key( (string) $row['id'] ) === $material_id ) ) {
 					$ok = true;
 					break;
 				}

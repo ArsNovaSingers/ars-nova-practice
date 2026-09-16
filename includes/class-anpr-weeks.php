@@ -12,7 +12,8 @@
  *   task: id, title, detail, minutes, parts[] (voice parts; empty = everyone),
  *         materials[]
  *   material: id (a Hub material row id), role (track|open), part, pan
- *         (left|center|right), muted (bool)
+ *         (left|center|right), muted (bool), and a title/piece/type
+ *         snapshot used to find the row again if the Hub changes its id
  *
  * PERMISSIONS. Nothing here decides who may see a file. A task only ever
  * points at Hub material ids, and every time a page is drawn those ids are
@@ -163,6 +164,11 @@ class ANPR_Weeks {
 				'part'  => in_array( $part, $valid_parts, true ) ? $part : '',
 				'pan'   => in_array( $pan, array( 'left', 'center', 'right' ), true ) ? $pan : 'center',
 				'muted' => ! empty( $m['muted'] ),
+				// Snapshot of what was attached, used only to find the row again
+				// when its id changes (see resolve_material()).
+				'title' => isset( $m['title'] ) ? sanitize_text_field( (string) $m['title'] ) : '',
+				'piece' => isset( $m['piece'] ) ? sanitize_text_field( (string) $m['piece'] ) : '',
+				'type'  => isset( $m['type'] ) ? sanitize_key( (string) $m['type'] ) : '',
 			);
 		}
 
@@ -432,6 +438,67 @@ class ANPR_Weeks {
 			$cache[ $key ] = $rows;
 		}
 		return $cache[ $key ];
+	}
+
+	/**
+	 * Find the viewer's row for a task material, even if its id changed.
+	 *
+	 * WHY. The Hub lists a Drive score that has both a hand-entered row and a
+	 * published mirror copy ONCE, keeping the hand row's words but taking the
+	 * mirror row's id (ANSP_Scores_Source::append_published_scores). When the
+	 * mirror library cannot be reached the hand row comes back with its own id.
+	 * So the same score can appear under two ids depending on the day. Seen on
+	 * staging 2026-09-16: a task attached to the hand id lost its score.
+	 *
+	 * Order: the stored id; then the same title, piece and type among the rows
+	 * THIS VIEWER CAN SEE (so nothing is ever widened). The title/piece come from
+	 * the snapshot saved with the task, or else from the project's raw hand row.
+	 *
+	 * @param array  $m          Task material.
+	 * @param array  $rows       Viewer's rows by id (materials_by_id()).
+	 * @param int    $project_id Project.
+	 * @return array|null
+	 */
+	public static function resolve_material( $m, $rows, $project_id ) {
+		if ( isset( $rows[ $m['id'] ] ) ) {
+			return $rows[ $m['id'] ];
+		}
+		$title = isset( $m['title'] ) ? (string) $m['title'] : '';
+		$piece = isset( $m['piece'] ) ? (string) $m['piece'] : '';
+		$type  = isset( $m['type'] ) ? (string) $m['type'] : '';
+		if ( '' === $title ) {
+			foreach ( (array) ANSP_Materials::get_materials( (int) $project_id ) as $raw ) {
+				if ( isset( $raw['id'] ) && sanitize_key( (string) $raw['id'] ) === $m['id'] ) {
+					$title = isset( $raw['title'] ) ? (string) $raw['title'] : '';
+					$piece = ANSP_Materials::get_piece( $raw );
+					$type  = isset( $raw['type'] ) ? (string) $raw['type'] : '';
+					break;
+				}
+			}
+		}
+		if ( '' === $title ) {
+			return null;
+		}
+		$norm  = static function ( $v ) {
+			return strtolower( trim( preg_replace( '/\s+/', ' ', (string) $v ) ) );
+		};
+		$found = null;
+		foreach ( $rows as $row ) {
+			if ( $norm( isset( $row['title'] ) ? $row['title'] : '' ) !== $norm( $title ) ) {
+				continue;
+			}
+			if ( '' !== $piece && $norm( ANSP_Materials::get_piece( $row ) ) !== $norm( $piece ) ) {
+				continue;
+			}
+			if ( '' !== $type && isset( $row['type'] ) && $row['type'] !== $type ) {
+				continue;
+			}
+			if ( null !== $found ) {
+				return null; // Ambiguous: never guess between two files.
+			}
+			$found = $row;
+		}
+		return $found;
 	}
 
 	/**

@@ -187,17 +187,18 @@ class ANPR_Frontend {
 		$links  = array();
 		$tracks = array();
 		foreach ( $task['materials'] as $m ) {
-			if ( ! isset( $materials[ $m['id'] ] ) ) {
+			$row = ANPR_Weeks::resolve_material( $m, $materials, $project_id );
+			if ( null === $row ) {
 				continue; // Removed, or not something this viewer may see.
 			}
-			$row   = $materials[ $m['id'] ];
+			$rid   = sanitize_key( (string) $row['id'] );
 			$title = isset( $row['title'] ) ? (string) $row['title'] : '';
 			if ( 'track' === $m['role'] && ANPR_Weeks::is_track( $row ) ) {
 				if ( '' !== $m['part'] && ! $is_manager && ! empty( $parts ) && ! in_array( $m['part'], $parts, true ) ) {
 					continue; // Another voice part's track.
 				}
 				$tracks[] = array(
-					'id'    => $m['id'],
+					'id'    => $rid,
 					'title' => $title,
 					'src'   => ANSP_Player::play_url( $project_id, (string) $row['id'] ),
 					'part'  => $m['part'],
@@ -210,7 +211,7 @@ class ANPR_Frontend {
 					continue;
 				}
 				$links[] = array(
-					'id'    => $m['id'],
+					'id'    => $rid,
 					'title' => $title,
 					'url'   => $url,
 					'type'  => isset( $row['type'] ) ? (string) $row['type'] : '',
