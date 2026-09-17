@@ -65,6 +65,7 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 		}
 		$minutes = 0;
 		$rated   = array();
+		$scores  = array();
 		$secs    = 0;
 		foreach ( $tasks as $task ) {
 			$minutes += (int) $task['minutes'];
@@ -72,10 +73,12 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 			if ( null !== $conf_t ) {
 				$rated[] = $conf_t;
 			}
-			$secs += isset( $block['seconds'][ $task['id'] ] ) ? (int) $block['seconds'][ $task['id'] ] : 0;
+			// 0.7.0 (Jonathan): a task nobody has started is a zero, not a gap.
+			// Skipping a task used to cost nothing; now it pulls the week down.
+			$scores[] = null === $conf_t ? 0 : $conf_t;
+			$secs    += isset( $block['seconds'][ $task['id'] ] ) ? (int) $block['seconds'][ $task['id'] ] : 0;
 		}
-		// 0.6.0: no Done tick any more — the week's figure is average confidence.
-		$avg = $rated ? (int) round( array_sum( $rated ) / count( $rated ) ) : null;
+		$avg = ANPR_Tracking::week_score( $scores );
 		$total = count( $tasks );
 		$due   = ANPR_Frontend::date_label( $week['due_date'] );
 		?>
@@ -126,11 +129,16 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 			<div class="anpr-summary" data-anpr-summary
 				data-anpr-total="<?php echo esc_attr( (string) $total ); ?>"
 				data-anpr-secs="<?php echo esc_attr( (string) $secs ); ?>">
+				<div class="anpr-stat anpr-stat--grade" style="--anpr-conf: <?php echo esc_attr( (string) ( null === $avg ? 0 : $avg ) ); ?>;">
+					<span class="anpr-stat-label"><?php esc_html_e( 'Your grade', 'ars-nova-practice' ); ?></span>
+					<span class="anpr-grade" data-anpr-grade><?php echo esc_html( ANPR_Tracking::grade( $avg ) ); ?></span>
+					<span class="anpr-stat-note"><?php esc_html_e( 'every task counts — one you have not started counts as a zero', 'ars-nova-practice' ); ?></span>
+				</div>
 				<div class="anpr-stat anpr-stat--going" style="--anpr-conf: <?php echo esc_attr( (string) ( null === $avg ? 0 : $avg ) ); ?>;">
 					<span class="anpr-stat-label"><?php esc_html_e( 'How it is going', 'ars-nova-practice' ); ?></span>
 					<span class="anpr-stat-value" data-anpr-avg><?php echo esc_html( null === $avg ? '—' : $avg . '%' ); ?></span>
 					<span class="anpr-bar" aria-hidden="true"><span class="anpr-bar-fill" data-anpr-bar style="width: <?php echo esc_attr( (string) min( 100, null === $avg ? 0 : $avg ) ); ?>%"></span></span>
-					<span class="anpr-stat-note" data-anpr-avgnote><?php echo esc_html( null === $avg ? __( 'move a slider to say how it is going', 'ars-nova-practice' ) : ANPR_Tracking::confidence_label( $avg ) ); ?></span>
+					<span class="anpr-stat-note" data-anpr-avgnote><?php echo esc_html( ANPR_Tracking::confidence_label( $avg ) ); ?></span>
 				</div>
 				<div class="anpr-stat anpr-stat--time">
 					<span class="anpr-stat-label"><?php esc_html_e( 'Time rehearsed', 'ars-nova-practice' ); ?></span>
@@ -327,7 +335,7 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 ?>
 <div class="anpr-page" data-anpr-page>
 	<p class="anpr-privacy">
-		<?php esc_html_e( 'Open a task to work on it: the practice track, the recorder and the rest are inside. Slide "How is it going?" as you improve — and at 111% your newest take for that piece is featured on your bio for the choir to hear. Tom, Zahnay and the site admins can see how it is going and how long you have rehearsed.', 'ars-nova-practice' ); ?>
+		<?php esc_html_e( 'Open a task to work on it: the practice track, the recorder and the rest are inside. Slide "How is it going?" as you improve — and at 111% your newest take for that piece is featured on your bio for the choir to hear. Your grade is the average across every task in the week, so one you have not started counts as a zero. Tom, Zahnay and the site admins can see how it is going and how long you have rehearsed.', 'ars-nova-practice' ); ?>
 	</p>
 
 	<?php foreach ( $anpr_data['projects'] as $anpr_block ) : ?>

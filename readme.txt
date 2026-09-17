@@ -4,7 +4,7 @@ Tags: choir, practice, assignments, rehearsal
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.6.1
+Stable tag: 0.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,6 +15,7 @@ Weekly practice assignments for the Ars Nova Singers Hub. Add-on for the Ars Nov
 **For singers** — "This Week's Assignments" on the Singers Hub becomes a week-by-week homework page:
 
 * This week's tasks first, with "have ready by" and the director's note; earlier and upcoming weeks folded away.
+* A letter grade and a “How it is going” score at the top of the week, averaged over every task — one not started counts as a zero.
 * Each task: one “How is this going?” slider from 0 to 111%, red through yellow to green, with a sentence that grows in confidence; saved practice takes (see 0.4.0); the score/link buttons; and a **practice player**.
 * Each practice track opens in its own player: green Play, red Record and black Stop side by side, Mute / Solo / Volume / Pan on the track, zoom, and takes recorded underneath that can be selected and deleted.
 * A task can carry one track per voice part; each singer gets their own part's track.
@@ -34,6 +35,13 @@ Drafts are shown to staff on the Hub page itself, so the Hub is the preview.
 The practice player is built on **@dawcore/components** from waveform-playlist by Naomi Aro (MIT License) — https://github.com/naomiaro/waveform-playlist. The built browser bundle is in `assets/player/`, with every bundled licence in `assets/player/THIRD-PARTY-LICENSES.txt` (MIT and BSD-3-Clause, plus waveform-data under LGPL-3.0). Its source, exact versions and build script are in the repository's `player-src/` folder, so the bundle can be rebuilt with any of those libraries replaced.
 
 == Changelog ==
+
+= 0.7.0 =
+A grade, and a zero that actually costs something (Jonathan, 2026-09-17).
+* **A school letter grade at the top of the week**, from the singer's own score: A+++ at 111, A++ from 100, then A+ 97, A 93, A- 90, B+ 87, B 83, B- 80, C+ 77, C 73, C- 70, D+ 67, D 63, D- 60, F below 60.
+* **A task you have not started counts as a zero.** The week's “How it is going” used to average only the tasks a singer had rated, so ignoring a task cost nothing. It now divides by every task the singer was set, which is what makes the grade a motivation number rather than a compliment.
+* **Full left, and untouched, both read “Not started yet.”** One wording for the same thing.
+* Tom's Progress report follows: a Grade column per singer, the choir's grade as a card, and tasks nobody has started listed under “Needs attention” alongside the ones rated 25% or under.
 
 = 0.6.1 =
 * Fixed a PHP warning on every week (`Undefined variable $done`) — a leftover line from the 0.5.0 progress bar that 0.6.0 replaced with the confidence average.

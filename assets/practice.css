@@ -223,7 +223,15 @@
 	font-weight: 600;
 }
 .anpr-shared.is-warning { background: #fdecec; color: #a4231b; }
-.anpr-stat--going { --anpr-conf: 0; }
+.anpr-stat--going, .anpr-stat--grade { --anpr-conf: 0; }
+.anpr-grade {
+	display: block;
+	font-size: 2.6rem;
+	font-weight: 800;
+	line-height: 1.05;
+	letter-spacing: -0.02em;
+	color: hsl(min(calc(var(--anpr-conf) * 1.15), 130), 72%, 38%);
+}
 .anpr-stat--going .anpr-stat-value { color: hsl(min(calc(var(--anpr-conf) * 1.15), 130), 72%, 38%); }
 .anpr-stat--going .anpr-bar-fill { background: hsl(min(calc(var(--anpr-conf) * 1.15), 130), 72%, 38%); }
 

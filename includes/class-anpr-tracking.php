@@ -51,7 +51,7 @@ class ANPR_Tracking {
 	 */
 	public static function confidence_steps() {
 		return array(
-			0   => __( 'Never tried', 'ars-nova-practice' ),
+			0   => __( 'Not started yet', 'ars-nova-practice' ),
 			1   => __( 'Just had a first look', 'ars-nova-practice' ),
 			11  => __( 'Not bad for a first go', 'ars-nova-practice' ),
 			26  => __( 'Could be better', 'ars-nova-practice' ),
@@ -76,7 +76,9 @@ class ANPR_Tracking {
 	 */
 	public static function confidence_label( $value ) {
 		if ( null === $value || '' === $value ) {
-			return __( 'Not said yet', 'ars-nova-practice' );
+			// 0.7.0 (Jonathan): an untouched slider reads the same as a zero.
+			// Not having started is a score, not an absence of one.
+			return __( 'Not started yet', 'ars-nova-practice' );
 		}
 		$value = max( 0, min( self::MAX_CONFIDENCE, (int) $value ) );
 		$out   = '';
@@ -105,6 +107,57 @@ class ANPR_Tracking {
 			return array( 0 => 10, 1 => 40, 2 => 70, 3 => 100 )[ (int) $row['rating'] ] ?? null;
 		}
 		return null;
+	}
+
+	/**
+	 * A school letter grade for a confidence score (0.7.0, Jonathan).
+	 *
+	 * The point is motivation: a task nobody has started counts as a zero, so
+	 * an untouched week reads F and climbs from there. The scale is the ordinary
+	 * American one, with room above 100 because the slider goes to 111.
+	 *
+	 * @param int|null $value 0-111, or null when nothing has been set at all.
+	 * @return string
+	 */
+	public static function grade( $value ) {
+		$v = null === $value || '' === $value ? 0 : max( 0, min( self::MAX_CONFIDENCE, (int) $value ) );
+		$scale = array(
+			111 => 'A+++',
+			100 => 'A++',
+			97  => 'A+',
+			93  => 'A',
+			90  => 'A-',
+			87  => 'B+',
+			83  => 'B',
+			80  => 'B-',
+			77  => 'C+',
+			73  => 'C',
+			70  => 'C-',
+			67  => 'D+',
+			63  => 'D',
+			60  => 'D-',
+		);
+		foreach ( $scale as $from => $letter ) {
+			if ( $v >= $from ) {
+				return $letter;
+			}
+		}
+		return 'F';
+	}
+
+	/**
+	 * The week's score for a singer: the average over EVERY task they were set,
+	 * with a task they have not rated counting as a zero (0.7.0, Jonathan).
+	 *
+	 * Before 0.7.0 the average only counted tasks the singer had rated, so
+	 * ignoring a task cost nothing at all. It does now.
+	 *
+	 * @param int[] $scores One entry per task, unrated tasks already zeroed.
+	 * @return int|null null only when the week sets no tasks for this singer.
+	 */
+	public static function week_score( $scores ) {
+		$n = count( $scores );
+		return $n ? (int) round( array_sum( $scores ) / $n ) : null;
 	}
 
 	/**

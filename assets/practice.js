@@ -80,14 +80,17 @@
 		if ( el( '[data-anpr-donesr]' ) ) {
 			el( '[data-anpr-donesr]' ).textContent = fmt( T.ratedOf || '%1$d of %2$d tasks rated', done, total );
 		}
+		// 0.7.0: every task counts. A task the singer has not rated is a zero,
+		// so the denominator is the whole week, not just what they answered.
 		var sum = 0;
 		var n = 0;
 		tasks.forEach( function ( task ) {
 			var input = task.querySelector( '[data-anpr-rate]' );
-			if ( input && input.getAttribute( 'data-rated' ) === '1' ) {
-				sum += Number( input.value );
-				n++;
+			if ( ! input ) {
+				return;
 			}
+			sum += input.getAttribute( 'data-rated' ) === '1' ? Number( input.value ) : 0;
+			n++;
 		} );
 		var mean = n ? Math.round( sum / n ) : null;
 		if ( el( '[data-anpr-bar]' ) ) {
@@ -97,14 +100,39 @@
 		if ( avg ) {
 			avg.textContent = null === mean ? '—' : mean + '%';
 		}
-		var stat = box.querySelector( '.anpr-stat--going' );
-		if ( stat ) {
-			stat.style.setProperty( '--anpr-conf', String( mean || 0 ) );
+		[ '.anpr-stat--going', '.anpr-stat--grade' ].forEach( function ( sel ) {
+			var stat = box.querySelector( sel );
+			if ( stat ) {
+				stat.style.setProperty( '--anpr-conf', String( mean || 0 ) );
+			}
+		} );
+		var letter = el( '[data-anpr-grade]' );
+		if ( letter ) {
+			letter.textContent = grade( mean );
 		}
 		var note = el( '[data-anpr-avgnote]' );
 		if ( note ) {
-			note.textContent = null === mean ? ( T.saySomething || 'move a slider to say how it is going' ) : saying( mean );
+			note.textContent = saying( null === mean ? 0 : mean );
 		}
+	}
+
+	/**
+	 * The same letter grade PHP works out, so the page and the report agree.
+	 * Not started is a zero, so an untouched week reads F.
+	 */
+	function grade( value ) {
+		var v = null === value || undefined === value ? 0 : Math.max( 0, Math.min( 111, Number( value ) ) );
+		var scale = [
+			[ 111, 'A+++' ], [ 100, 'A++' ], [ 97, 'A+' ], [ 93, 'A' ], [ 90, 'A-' ],
+			[ 87, 'B+' ], [ 83, 'B' ], [ 80, 'B-' ], [ 77, 'C+' ], [ 73, 'C' ],
+			[ 70, 'C-' ], [ 67, 'D+' ], [ 63, 'D' ], [ 60, 'D-' ]
+		];
+		for ( var i = 0; i < scale.length; i++ ) {
+			if ( v >= scale[ i ][ 0 ] ) {
+				return scale[ i ][ 1 ];
+			}
+		}
+		return 'F';
 	}
 
 	/** Add rehearsal seconds to the week's "Time rehearsed", as they happen. */

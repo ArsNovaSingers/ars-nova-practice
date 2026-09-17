@@ -79,6 +79,7 @@ class ANPR_Frontend {
 					array_values( ANPR_Tracking::confidence_steps() )
 				),
 				'i18n'      => array(
+					'notStarted' => __( 'Not started yet', 'ars-nova-practice' ),
 					'notRated'   => __( 'Not rated yet', 'ars-nova-practice' ),
 					'played'     => __( 'Played %d×', 'ars-nova-practice' ),
 					'notPlayed'  => __( 'Not played yet', 'ars-nova-practice' ),
