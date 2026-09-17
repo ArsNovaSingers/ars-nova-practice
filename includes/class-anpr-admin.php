@@ -25,6 +25,26 @@ class ANPR_Admin {
 	const PROGRESS = 'anpr-progress';
 	const SETTINGS = 'anpr-settings';
 
+	/** At or under this confidence, the report calls a task out (0.6.0). */
+	const NEEDS_HELP = 25;
+
+	/**
+	 * The red-to-green colour the singer sees for a confidence value.
+	 *
+	 * Same ramp as the slider in assets/practice.css, worked out in PHP so the
+	 * report and the practice page never drift apart.
+	 *
+	 * @param int|null $value 0-111, or null when never set.
+	 * @return string A CSS colour.
+	 */
+	public static function confidence_color( $value ) {
+		if ( null === $value || '' === $value ) {
+			return '#646970';
+		}
+		$hue = min( 130, max( 0, (int) $value ) * 1.15 );
+		return 'hsl(' . round( $hue ) . ', 72%, 38%)';
+	}
+
 	/**
 	 * Hook up.
 	 */
@@ -395,11 +415,14 @@ class ANPR_Admin {
 
 		$singers = self::singers_for( $project );
 		$summary = ANPR_Tracking::week_summary( $project->ID, $week['id'] );
-		$labels  = ANPR_Tracking::rating_labels();
 		$tasks   = $week['tasks'];
 
+		// 0.6.0: the Done switch is gone. Everything here reads the singer's own
+		// 0-111 "how is this going" slider, so what Tom sees is what they set.
 		$opened    = 0;
-		$all_done  = 0;
+		$all_rated = 0;
+		$conf_sum  = 0;
+		$conf_n    = 0;
 		$not_seen  = array();
 		$struggles = array();
 		foreach ( $singers as $u ) {
@@ -410,31 +433,44 @@ class ANPR_Admin {
 			} else {
 				$not_seen[] = $u->display_name;
 			}
-			$mine = 0;
-			$done = 0;
+			$mine  = 0;
+			$rated = 0;
 			foreach ( $tasks as $t ) {
 				if ( ! ANPR_Weeks::task_is_for( $t, $parts ) ) {
 					continue;
 				}
 				++$mine;
-				$ts = $s && isset( $s['tasks'][ $t['id'] ] ) ? $s['tasks'][ $t['id'] ] : null;
-				if ( $ts && $ts['done'] ) {
-					++$done;
-				}
-				if ( $ts && null !== $ts['rating'] && $ts['rating'] <= 0 ) {
-					$struggles[] = $u->display_name . ' — ' . $t['title'];
+				$ts   = $s && isset( $s['tasks'][ $t['id'] ] ) ? $s['tasks'][ $t['id'] ] : null;
+				$conf = $ts ? ANPR_Tracking::confidence_of( $ts ) : null;
+				if ( null !== $conf ) {
+					++$rated;
+					$conf_sum += (int) $conf;
+					++$conf_n;
+					if ( $conf <= self::NEEDS_HELP ) {
+						$struggles[] = $u->display_name . ' — ' . $t['title'] . ' (' . $conf . '%)';
+					}
 				}
 			}
-			if ( $mine && $done === $mine ) {
-				++$all_done;
+			if ( $mine && $rated === $mine ) {
+				++$all_rated;
 			}
 		}
-		$n = count( $singers );
+		$n        = count( $singers );
+		$conf_avg = $conf_n ? (int) round( $conf_sum / $conf_n ) : null;
 		?>
 		<div class="anpr-cards">
 			<div class="anpr-card"><span class="anpr-card-num"><?php echo esc_html( $opened . ' / ' . $n ); ?></span><?php esc_html_e( 'opened this week', 'ars-nova-practice' ); ?></div>
-			<div class="anpr-card"><span class="anpr-card-num"><?php echo esc_html( $all_done . ' / ' . $n ); ?></span><?php esc_html_e( 'marked every task done', 'ars-nova-practice' ); ?></div>
-			<div class="anpr-card"><span class="anpr-card-num"><?php echo esc_html( (string) count( $struggles ) ); ?></span><?php esc_html_e( 'tasks rated "Bad"', 'ars-nova-practice' ); ?></div>
+			<div class="anpr-card">
+				<span class="anpr-card-num" style="color: <?php echo esc_attr( self::confidence_color( $conf_avg ) ); ?>">
+					<?php echo esc_html( null === $conf_avg ? '—' : $conf_avg . '%' ); ?>
+				</span>
+				<?php esc_html_e( 'how it is going, on average', 'ars-nova-practice' ); ?>
+				<?php if ( null !== $conf_avg ) : ?>
+					<br><small><?php echo esc_html( ANPR_Tracking::confidence_label( $conf_avg ) ); ?></small>
+				<?php endif; ?>
+			</div>
+			<div class="anpr-card"><span class="anpr-card-num"><?php echo esc_html( $all_rated . ' / ' . $n ); ?></span><?php esc_html_e( 'rated every task', 'ars-nova-practice' ); ?></div>
+			<div class="anpr-card"><span class="anpr-card-num"><?php echo esc_html( (string) count( $struggles ) ); ?></span><?php echo esc_html( sprintf( /* translators: %d: percentage */ __( 'tasks at %d%% or under', 'ars-nova-practice' ), self::NEEDS_HELP ) ); ?></div>
 		</div>
 
 		<?php if ( 'published' !== $week['status'] ) : ?>
@@ -463,9 +499,9 @@ class ANPR_Admin {
 				<tr>
 					<th scope="col"><?php esc_html_e( 'Singer', 'ars-nova-practice' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Last activity', 'ars-nova-practice' ); ?></th>
-					<th scope="col"><?php esc_html_e( 'Tasks done', 'ars-nova-practice' ); ?></th>
-					<th scope="col"><?php esc_html_e( 'Time rehearsed', 'ars-nova-practice' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'How it is going', 'ars-nova-practice' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Time rehearsed', 'ars-nova-practice' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Tasks rated', 'ars-nova-practice' ); ?></th>
 					<?php foreach ( $tasks as $i => $t ) : ?>
 						<th scope="col" title="<?php echo esc_attr( $t['title'] ); ?>">
 							<?php echo esc_html( ( $i + 1 ) . '. ' . wp_trim_words( $t['title'], 5 ) ); ?>
@@ -506,45 +542,41 @@ class ANPR_Admin {
 							?>
 						</td>
 						<?php
-						// The three figures the singer sees at the top of the week (0.5.0).
+						// The same three figures the singer sees at the top of the week (0.6.0).
 						$mine    = 0;
-						$mydone  = 0;
 						$mysecs  = 0;
-						$myrated = array();
+						$myconf  = array();
 						foreach ( $tasks as $t ) {
 							if ( ! ANPR_Weeks::task_is_for( $t, $parts ) ) {
 								continue;
 							}
 							++$mine;
 							$ts = $s && isset( $s['tasks'][ $t['id'] ] ) ? $s['tasks'][ $t['id'] ] : null;
-							if ( $ts && $ts['done'] ) {
-								++$mydone;
-							}
 							if ( $ts ) {
 								$mysecs += (int) $ts['listen'] + (int) $ts['record'];
-								if ( null !== $ts['rating'] ) {
-									$myrated[] = (int) $ts['rating'];
+								$c       = ANPR_Tracking::confidence_of( $ts );
+								if ( null !== $c ) {
+									$myconf[] = (int) $c;
 								}
 							}
 						}
-						$mypct = $mine ? round( 100 * $mydone / $mine ) : 0;
+						$myavg = $myconf ? (int) round( array_sum( $myconf ) / count( $myconf ) ) : null;
+						$mybar = null === $myavg ? 0 : min( 100, $myavg );
 						?>
 						<td class="anpr-cell-sum">
-							<strong><?php echo esc_html( $mydone . ' / ' . $mine ); ?></strong>
-							<span class="anpr-minibar" aria-hidden="true"><span style="width: <?php echo esc_attr( (string) $mypct ); ?>%"></span></span>
+							<?php if ( null === $myavg ) : ?>
+								<span class="anpr-dim">—</span>
+							<?php else : ?>
+								<strong style="color: <?php echo esc_attr( self::confidence_color( $myavg ) ); ?>"><?php echo esc_html( $myavg . '%' ); ?></strong>
+								<span class="anpr-minibar" aria-hidden="true"><span style="width: <?php echo esc_attr( (string) $mybar ); ?>%; background: <?php echo esc_attr( self::confidence_color( $myavg ) ); ?>"></span></span>
+								<br><small><?php echo esc_html( ANPR_Tracking::confidence_label( $myavg ) ); ?></small>
+							<?php endif; ?>
 						</td>
 						<td class="anpr-cell-sum">
 							<?php echo esc_html( $mysecs ? ANPR_Frontend::minutes_label( $mysecs ) : '—' ); ?>
 						</td>
 						<td class="anpr-cell-sum">
-							<?php
-							if ( $myrated ) {
-								echo esc_html( $labels[ (int) round( array_sum( $myrated ) / count( $myrated ) ) ] );
-								echo '<br><small>' . esc_html( sprintf( /* translators: 1: rated, 2: total */ __( '%1$d of %2$d rated', 'ars-nova-practice' ), count( $myrated ), $mine ) ) . '</small>';
-							} else {
-								echo '<span class="anpr-dim">—</span>';
-							}
-							?>
+							<strong><?php echo esc_html( count( $myconf ) . ' / ' . $mine ); ?></strong>
 						</td>
 						<?php foreach ( $tasks as $t ) : ?>
 							<?php
@@ -554,12 +586,14 @@ class ANPR_Admin {
 							}
 							$ts = $s && isset( $s['tasks'][ $t['id'] ] ) ? $s['tasks'][ $t['id'] ] : null;
 							?>
-							<td class="<?php echo ( $ts && $ts['done'] ) ? 'anpr-cell-done' : ''; ?>">
+							<?php $conf = $ts ? ANPR_Tracking::confidence_of( $ts ) : null; ?>
+							<td class="<?php echo ( null !== $conf && $conf >= 100 ) ? 'anpr-cell-done' : ( ( null !== $conf && $conf <= self::NEEDS_HELP ) ? 'anpr-cell-low' : '' ); ?>">
 								<?php
 								$bits = array();
-								$bits[] = ( $ts && $ts['done'] ) ? '✓ ' . __( 'done', 'ars-nova-practice' ) : '○';
-								if ( $ts && null !== $ts['rating'] ) {
-									$bits[] = $labels[ (int) $ts['rating'] ];
+								if ( null === $conf ) {
+									$bits[] = '○';
+								} else {
+									$bits[] = $conf . '% ' . ANPR_Tracking::confidence_label( $conf );
 								}
 								if ( $ts && $ts['plays'] ) {
 									/* translators: %d: plays */
@@ -582,7 +616,7 @@ class ANPR_Admin {
 			</tbody>
 		</table>
 		</div>
-		<p class="description"><?php esc_html_e( '"▶" counts a play when a singer listened for at least 20 seconds in one sitting. "Time rehearsed" adds up listening and recording. Done marks and ratings are what the singer chose; they are not checked.', 'ars-nova-practice' ); ?></p>
+		<p class="description"><?php esc_html_e( '"▶" counts a play when a singer listened for at least 20 seconds in one sitting. "Time rehearsed" adds up listening and recording. "How it is going" is the singer\'s own slider, 0 to 111%; nothing here is checked against the recording.', 'ars-nova-practice' ); ?></p>
 		</div>
 		<?php
 	}

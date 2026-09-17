@@ -31,7 +31,7 @@ class ANPR_Tracking {
 	const NS     = 'ars-nova-practice/v1';
 	const EVENTS = array( 'view', 'open', 'play', 'listen', 'done', 'undone', 'rate', 'record' );
 
-	/** Rating labels, index = stored value. */
+	/** Rating labels, index = stored value (pre-0.6.0 four-step scale). */
 	public static function rating_labels() {
 		return array(
 			__( 'Bad', 'ars-nova-practice' ),
@@ -39,6 +39,72 @@ class ANPR_Tracking {
 			__( 'Good', 'ars-nova-practice' ),
 			__( 'Great', 'ars-nova-practice' ),
 		);
+	}
+
+	/**
+	 * The confidence ladder (0.6.0, Jonathan): how it is going, 0 to 111%.
+	 *
+	 * The singer moves one slider; the sentence above it gets more confident as
+	 * the number climbs, and 111% is the "feature my take on my bio" setting.
+	 *
+	 * @return array<int,string> lowest percentage => sentence
+	 */
+	public static function confidence_steps() {
+		return array(
+			0   => __( 'Never tried', 'ars-nova-practice' ),
+			1   => __( 'Just had a first look', 'ars-nova-practice' ),
+			11  => __( 'Not bad for a first go', 'ars-nova-practice' ),
+			26  => __( 'Could be better', 'ars-nova-practice' ),
+			41  => __( 'Making real progress', 'ars-nova-practice' ),
+			56  => __( 'Pretty good', 'ars-nova-practice' ),
+			71  => __( 'Really starting to sound good', 'ars-nova-practice' ),
+			86  => __( 'Nearly concert ready', 'ars-nova-practice' ),
+			100 => __( 'Nailed it', 'ars-nova-practice' ),
+			101 => __( 'Off book and loving it', 'ars-nova-practice' ),
+			111 => __( '111%. Feature this on my bio!', 'ars-nova-practice' ),
+		);
+	}
+
+	/** The highest confidence a singer can set — the joke is the point. */
+	const MAX_CONFIDENCE = 111;
+
+	/**
+	 * The sentence for a confidence value.
+	 *
+	 * @param int|null $value 0-111, or null when never set.
+	 * @return string
+	 */
+	public static function confidence_label( $value ) {
+		if ( null === $value || '' === $value ) {
+			return __( 'Not said yet', 'ars-nova-practice' );
+		}
+		$value = max( 0, min( self::MAX_CONFIDENCE, (int) $value ) );
+		$out   = '';
+		foreach ( self::confidence_steps() as $from => $text ) {
+			if ( $value >= $from ) {
+				$out = $text;
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * A stored progress row's confidence, mapping pre-0.6.0 ratings (0-3).
+	 *
+	 * @param array|null $row Progress row.
+	 * @return int|null
+	 */
+	public static function confidence_of( $row ) {
+		if ( ! $row ) {
+			return null;
+		}
+		if ( isset( $row['confidence'] ) && null !== $row['confidence'] && '' !== $row['confidence'] ) {
+			return (int) $row['confidence'];
+		}
+		if ( isset( $row['rating'] ) && null !== $row['rating'] && '' !== $row['rating'] ) {
+			return array( 0 => 10, 1 => 40, 2 => 70, 3 => 100 )[ (int) $row['rating'] ] ?? null;
+		}
+		return null;
 	}
 
 	/**
@@ -127,8 +193,8 @@ class ANPR_Tracking {
 		$value   = null;
 		if ( 'rate' === $event ) {
 			$value = (int) $req->get_param( 'value' );
-			if ( $value < 0 || $value > 3 ) {
-				return new WP_Error( 'anpr_bad_value', 'Rating must be 0 to 3.', array( 'status' => 400 ) );
+			if ( $value < 0 || $value > self::MAX_CONFIDENCE ) {
+				return new WP_Error( 'anpr_bad_value', 'Confidence must be 0 to 111.', array( 'status' => 400 ) );
 			}
 		}
 		if ( 'listen' === $event && 0 === $seconds ) {
@@ -145,7 +211,33 @@ class ANPR_Tracking {
 		if ( null !== $task ) {
 			$out['plays'] = self::play_count( $user_id, $task_id );
 		}
+
+		// 111% features this singer's newest take for the piece on their bio;
+		// anything less takes it down again (0.6.0, Jonathan).
+		if ( 'rate' === $event && null !== $task && class_exists( 'ANPR_Takes' ) ) {
+			$piece = self::piece_of_task( $task, (int) $ctx['project']->ID, $user_id );
+			if ( '' !== $piece ) {
+				$res                    = ANPR_Takes::set_featured( $user_id, (int) $ctx['project']->ID, $piece, self::MAX_CONFIDENCE === (int) $value );
+				$out['featured']        = ! empty( $res['featured'] );
+				$out['featured_failed'] = ( self::MAX_CONFIDENCE === (int) $value ) && empty( $res['featured'] );
+			}
+		}
 		return rest_ensure_response( $out );
+	}
+
+	/**
+	 * The piece key of a task's practice track, as this viewer sees it.
+	 *
+	 * @param array $task       Task.
+	 * @param int   $project_id Project.
+	 * @param int   $user_id    Viewer.
+	 * @return string '' when the task has no practice track.
+	 */
+	public static function piece_of_task( $task, $project_id, $user_id ) {
+		$rows  = ANPR_Weeks::materials_by_id( $project_id, $user_id );
+		$parts = ANSP_Permissions::get_user_voice_parts( $user_id );
+		$mats  = ANPR_Frontend::task_materials( $task, $rows, $project_id, $parts, ANSP_Permissions::is_manager( $user_id ) );
+		return isset( $mats['tracks'][0]['piece'] ) ? (string) $mats['tracks'][0]['piece'] : '';
 	}
 
 	/**
@@ -242,6 +334,8 @@ class ANPR_Tracking {
 			'done_at'    => $row ? $row['done_at'] : null,
 			'rating'     => $row && null !== $row['rating'] ? (int) $row['rating'] : null,
 			'rated_at'   => $row ? $row['rated_at'] : null,
+			'confidence' => $row && isset( $row['confidence'] ) && null !== $row['confidence'] ? (int) $row['confidence'] : null,
+			'confidence_at' => $row && isset( $row['confidence_at'] ) ? $row['confidence_at'] : null,
 			'updated_at' => $now,
 		);
 		if ( 'done' === $event ) {
@@ -251,8 +345,12 @@ class ANPR_Tracking {
 			$data['done']    = 0;
 			$data['done_at'] = null;
 		} elseif ( 'rate' === $event ) {
-			$data['rating']   = (int) $value;
-			$data['rated_at'] = $now;
+			// 0.6.0: one 0-111 confidence slider replaced Done and the 0-3 rating.
+			$data['confidence']    = max( 0, min( self::MAX_CONFIDENCE, (int) $value ) );
+			$data['confidence_at'] = $now;
+			$data['rating']        = min( 3, (int) floor( $data['confidence'] / 34 ) );
+			$data['rated_at']      = $now;
+			$data['done']          = 0;
 		}
 		$wpdb->replace( $table, $data ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 	}
@@ -380,7 +478,7 @@ class ANPR_Tracking {
 				continue;
 			}
 			if ( ! isset( $out[ $u ]['tasks'][ $t ] ) ) {
-				$out[ $u ]['tasks'][ $t ] = array( 'done' => 0, 'rating' => null, 'plays' => 0, 'listen' => 0, 'record' => 0, 'opens' => 0 );
+				$out[ $u ]['tasks'][ $t ] = array( 'done' => 0, 'rating' => null, 'confidence' => null, 'plays' => 0, 'listen' => 0, 'record' => 0, 'opens' => 0 );
 			}
 			if ( 'play' === $r['event'] ) {
 				$out[ $u ]['tasks'][ $t ]['plays'] = (int) $r['n'];
@@ -401,10 +499,11 @@ class ANPR_Tracking {
 				$out[ $u ] = array( 'tasks' => array(), 'viewed' => 0, 'last' => '' );
 			}
 			if ( ! isset( $out[ $u ]['tasks'][ $t ] ) ) {
-				$out[ $u ]['tasks'][ $t ] = array( 'done' => 0, 'rating' => null, 'plays' => 0, 'listen' => 0, 'record' => 0, 'opens' => 0 );
+				$out[ $u ]['tasks'][ $t ] = array( 'done' => 0, 'rating' => null, 'confidence' => null, 'plays' => 0, 'listen' => 0, 'record' => 0, 'opens' => 0 );
 			}
-			$out[ $u ]['tasks'][ $t ]['done']   = (int) $r['done'];
-			$out[ $u ]['tasks'][ $t ]['rating'] = null === $r['rating'] ? null : (int) $r['rating'];
+			$out[ $u ]['tasks'][ $t ]['done']       = (int) $r['done'];
+			$out[ $u ]['tasks'][ $t ]['rating']     = null === $r['rating'] ? null : (int) $r['rating'];
+			$out[ $u ]['tasks'][ $t ]['confidence'] = self::confidence_of( $r );
 			if ( $r['updated_at'] > $out[ $u ]['last'] ) {
 				$out[ $u ]['last'] = $r['updated_at'];
 			}

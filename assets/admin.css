@@ -95,6 +95,7 @@
 .anpr-table-wrap { overflow-x: auto; }
 .anpr-report th small { font-weight: 400; color: #646970; }
 .anpr-report td.anpr-cell-done { background: #edfaef; }
+.anpr-report td.anpr-cell-low { background: #fdf0ef; }
 .anpr-dim { color: #8c8f94; }
 .anpr-notseen { margin: 0.5rem 0 1rem; }
 

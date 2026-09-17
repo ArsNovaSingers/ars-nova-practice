@@ -57,28 +57,24 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 	 */
 	function anpr_render_week( $week, $block, $data, $current ) {
 		$project_id = (int) $block['project']->ID;
-		$labels     = ANPR_Tracking::rating_labels();
 		$tasks      = array();
 		foreach ( $week['tasks'] as $task ) {
 			if ( $data['is_manager'] || ANPR_Weeks::task_is_for( $task, $data['parts'] ) ) {
 				$tasks[] = $task;
 			}
 		}
-		$done     = 0;
-		$minutes  = 0;
-		$rated    = array();
-		$secs     = 0;
+		$minutes = 0;
+		$rated   = array();
+		$secs    = 0;
 		foreach ( $tasks as $task ) {
 			$minutes += (int) $task['minutes'];
-			$prog_t   = isset( $block['progress'][ $task['id'] ] ) ? $block['progress'][ $task['id'] ] : null;
-			if ( ! empty( $prog_t['done'] ) ) {
-				++$done;
-			}
-			if ( $prog_t && null !== $prog_t['rating'] && '' !== $prog_t['rating'] ) {
-				$rated[] = (int) $prog_t['rating'];
+			$conf_t   = ANPR_Tracking::confidence_of( isset( $block['progress'][ $task['id'] ] ) ? $block['progress'][ $task['id'] ] : null );
+			if ( null !== $conf_t ) {
+				$rated[] = $conf_t;
 			}
 			$secs += isset( $block['seconds'][ $task['id'] ] ) ? (int) $block['seconds'][ $task['id'] ] : 0;
 		}
+		// 0.6.0: no Done tick any more — the week's figure is average confidence.
 		$avg = $rated ? (int) round( array_sum( $rated ) / count( $rated ) ) : null;
 		$total = count( $tasks );
 		$due   = ANPR_Frontend::date_label( $week['due_date'] );
@@ -129,14 +125,13 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 			 */
 			?>
 			<div class="anpr-summary" data-anpr-summary
-				data-anpr-done="<?php echo esc_attr( (string) $done ); ?>"
 				data-anpr-total="<?php echo esc_attr( (string) $total ); ?>"
 				data-anpr-secs="<?php echo esc_attr( (string) $secs ); ?>">
-				<div class="anpr-stat anpr-stat--tasks">
-					<span class="anpr-stat-label"><?php esc_html_e( 'Tasks done', 'ars-nova-practice' ); ?></span>
-					<span class="anpr-stat-value" data-anpr-donecount><?php echo esc_html( $done . ' / ' . $total ); ?></span>
-					<span class="anpr-bar" aria-hidden="true"><span class="anpr-bar-fill" data-anpr-bar style="width: <?php echo esc_attr( (string) ( $total ? round( 100 * $done / $total ) : 0 ) ); ?>%"></span></span>
-					<span class="anpr-sr" aria-live="polite" data-anpr-donesr><?php echo esc_html( sprintf( /* translators: 1: done, 2: total */ __( '%1$d of %2$d tasks done', 'ars-nova-practice' ), $done, $total ) ); ?></span>
+				<div class="anpr-stat anpr-stat--going" style="--anpr-conf: <?php echo esc_attr( (string) ( null === $avg ? 0 : $avg ) ); ?>;">
+					<span class="anpr-stat-label"><?php esc_html_e( 'How it is going', 'ars-nova-practice' ); ?></span>
+					<span class="anpr-stat-value" data-anpr-avg><?php echo esc_html( null === $avg ? '—' : $avg . '%' ); ?></span>
+					<span class="anpr-bar" aria-hidden="true"><span class="anpr-bar-fill" data-anpr-bar style="width: <?php echo esc_attr( (string) min( 100, null === $avg ? 0 : $avg ) ); ?>%"></span></span>
+					<span class="anpr-stat-note" data-anpr-avgnote><?php echo esc_html( null === $avg ? __( 'move a slider to say how it is going', 'ars-nova-practice' ) : ANPR_Tracking::confidence_label( $avg ) ); ?></span>
 				</div>
 				<div class="anpr-stat anpr-stat--time">
 					<span class="anpr-stat-label"><?php esc_html_e( 'Time rehearsed', 'ars-nova-practice' ); ?></span>
@@ -150,42 +145,12 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 						?>
 					</span>
 				</div>
-				<div class="anpr-stat anpr-stat--going">
-					<span class="anpr-stat-label"><?php esc_html_e( 'How it is going', 'ars-nova-practice' ); ?></span>
-					<span class="anpr-stat-value" data-anpr-avg><?php echo esc_html( null === $avg ? __( '—', 'ars-nova-practice' ) : $labels[ $avg ] ); ?></span>
-					<span class="anpr-stat-note" data-anpr-avgnote>
-						<?php
-						echo esc_html(
-							$rated
-								/* translators: 1: rated tasks, 2: total tasks */
-								? sprintf( __( 'from %1$d of %2$d tasks', 'ars-nova-practice' ), count( $rated ), $total )
-								: __( 'not rated yet', 'ars-nova-practice' )
-						);
-						?>
-					</span>
+				<div class="anpr-stat anpr-stat--said">
+					<span class="anpr-stat-label"><?php esc_html_e( 'Tasks you have rated', 'ars-nova-practice' ); ?></span>
+					<span class="anpr-stat-value" data-anpr-donecount><?php echo esc_html( count( $rated ) . ' / ' . $total ); ?></span>
+					<span class="anpr-sr" aria-live="polite" data-anpr-donesr><?php echo esc_html( sprintf( /* translators: 1: rated, 2: total */ __( '%1$d of %2$d tasks rated', 'ars-nova-practice' ), count( $rated ), $total ) ); ?></span>
 				</div>
 			</div>
-
-
-			<?php if ( ! empty( $week['staff_only'] ) ) : ?>
-				<p class="anpr-staff-badge">
-					<?php
-					if ( 'published' !== $week['status'] ) {
-						esc_html_e( 'Draft — only staff can see this week.', 'ars-nova-practice' );
-					} else {
-						/* translators: %s: date */
-						echo esc_html( sprintf( __( 'Singers see this week from %s. Only staff can see it now.', 'ars-nova-practice' ), ANPR_Frontend::date_label( $week['show_from'] ) ) );
-					}
-					?>
-				</p>
-			<?php endif; ?>
-
-			<?php if ( '' !== $week['note'] ) : ?>
-				<div class="anpr-note">
-					<p class="anpr-note-label"><?php esc_html_e( 'From the director', 'ars-nova-practice' ); ?></p>
-					<?php echo wp_kses_post( wpautop( esc_html( $week['note'] ) ) ); ?>
-				</div>
-			<?php endif; ?>
 
 			<?php
 			$wvid = ANPR_Frontend::video_embed( isset( $week['video'] ) ? $week['video'] : '' );
@@ -211,12 +176,11 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 						<?php
 						$mats     = ANPR_Frontend::task_materials( $task, $block['materials'], $project_id, $data['parts'], $data['is_manager'] );
 						$prog     = isset( $block['progress'][ $task['id'] ] ) ? $block['progress'][ $task['id'] ] : null;
-						$is_done  = $prog && ! empty( $prog['done'] );
-						$rating   = ( $prog && null !== $prog['rating'] && '' !== $prog['rating'] ) ? (int) $prog['rating'] : null;
+						$conf     = ANPR_Tracking::confidence_of( $prog );
 						$plays    = isset( $block['plays'][ $task['id'] ] ) ? (int) $block['plays'][ $task['id'] ] : 0;
 						$dom      = 'anpr-' . $week['id'] . '-' . $task['id'];
 						?>
-						<li class="anpr-task<?php echo $is_done ? ' is-done' : ''; ?>"
+						<li class="anpr-task<?php echo ( null !== $conf && $conf >= 100 ) ? ' is-proud' : ''; ?>"
 							data-anpr-task="<?php echo esc_attr( $task['id'] ); ?>"
 							data-anpr-week="<?php echo esc_attr( $week['id'] ); ?>"
 							data-anpr-project="<?php echo esc_attr( (string) $project_id ); ?>">
@@ -247,13 +211,25 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 										</span>
 									</span>
 								</button>
-								<label class="anpr-done">
-									<input type="checkbox" role="switch" data-anpr-done <?php checked( $is_done ); ?>>
-									<span class="anpr-switch" aria-hidden="true"><span class="anpr-switch-knob"></span></span>
-									<span class="anpr-switch-text anpr-switch-off" aria-hidden="true"><?php esc_html_e( 'Not done', 'ars-nova-practice' ); ?></span>
-									<span class="anpr-switch-text anpr-switch-on" aria-hidden="true"><?php esc_html_e( 'Done', 'ars-nova-practice' ); ?></span>
-									<span class="anpr-sr"><?php echo esc_html( sprintf( /* translators: %s: task title */ __( 'Done: %s', 'ars-nova-practice' ), $task['title'] ) ); ?></span>
-								</label>
+								<?php
+								/*
+								 * 0.6.0 (Jonathan): the Done switch is gone. One slider says how
+								 * it is going, 0 to 111%, red through amber to green, with a
+								 * sentence that grows in confidence. 111% features the singer's
+								 * newest take for this piece on their Hub bio.
+								 */
+								?>
+								<div class="anpr-conf<?php echo null === $conf ? ' is-unset' : ''; ?>" style="--anpr-conf: <?php echo esc_attr( (string) ( null === $conf ? 0 : $conf ) ); ?>;">
+									<output class="anpr-conf-say" for="<?php echo esc_attr( $dom . '-rate' ); ?>" data-anpr-say><?php echo esc_html( ANPR_Tracking::confidence_label( $conf ) ); ?></output>
+									<div class="anpr-conf-row">
+										<input type="range" id="<?php echo esc_attr( $dom . '-rate' ); ?>" min="0" max="111" step="1"
+											value="<?php echo esc_attr( (string) ( null === $conf ? 0 : $conf ) ); ?>"
+											data-anpr-rate data-rated="<?php echo null === $conf ? '0' : '1'; ?>"
+											aria-label="<?php echo esc_attr( sprintf( /* translators: %s: task title */ __( 'How is it going: %s', 'ars-nova-practice' ), $task['title'] ) ); ?>"
+											aria-valuetext="<?php echo esc_attr( ANPR_Tracking::confidence_label( $conf ) . ( null === $conf ? '' : ' — ' . $conf . '%' ) ); ?>">
+										<span class="anpr-conf-num" data-anpr-num><?php echo esc_html( null === $conf ? '—' : $conf . '%' ); ?></span>
+									</div>
+								</div>
 							</div>
 
 							<div class="anpr-task-body" id="<?php echo esc_attr( $dom . '-body' ); ?>" <?php echo $current && 0 === $i ? '' : 'hidden'; ?>>
@@ -328,21 +304,9 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 									</div>
 								<?php endif; ?>
 
-								<div class="anpr-rating<?php echo null === $rating ? ' is-unrated' : ''; ?>">
-									<label class="anpr-rating-label" for="<?php echo esc_attr( $dom . '-rate' ); ?>"><?php esc_html_e( 'How is it going?', 'ars-nova-practice' ); ?></label>
-									<input type="range" id="<?php echo esc_attr( $dom . '-rate' ); ?>" min="0" max="3" step="1"
-										value="<?php echo esc_attr( (string) ( null === $rating ? 1 : $rating ) ); ?>"
-										data-anpr-rate data-rated="<?php echo null === $rating ? '0' : '1'; ?>"
-										aria-valuetext="<?php echo esc_attr( null === $rating ? __( 'Not rated yet', 'ars-nova-practice' ) : $labels[ $rating ] ); ?>">
-									<div class="anpr-rating-scale" aria-hidden="true">
-										<?php foreach ( $labels as $label ) : ?>
-											<span><?php echo esc_html( $label ); ?></span>
-										<?php endforeach; ?>
-									</div>
-									<output class="anpr-rating-out" for="<?php echo esc_attr( $dom . '-rate' ); ?>">
-										<?php echo esc_html( null === $rating ? __( 'Not rated yet', 'ars-nova-practice' ) : $labels[ $rating ] ); ?>
-									</output>
-								</div>
+								<?php if ( null !== $conf && ANPR_Tracking::MAX_CONFIDENCE === $conf ) : ?>
+									<p class="anpr-shared" data-anpr-shared><?php esc_html_e( 'Your newest take for this piece is featured on your bio for the choir to hear.', 'ars-nova-practice' ); ?></p>
+								<?php endif; ?>
 
 								<p class="anpr-task-error" role="alert" hidden></p>
 							</div>
@@ -357,7 +321,7 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 ?>
 <div class="anpr-page" data-anpr-page>
 	<p class="anpr-privacy">
-		<?php esc_html_e( 'Open a task to work on it: the practice track, the recorder and the rest are inside. Flip it to Done when you have finished, and say how it is going. Tom, Zahnay and the site admins can see which tasks you marked done, your ratings, and how long you have rehearsed.', 'ars-nova-practice' ); ?>
+		<?php esc_html_e( 'Open a task to work on it: the practice track, the recorder and the rest are inside. Slide "How is it going?" as you improve — and at 111% your newest take for that piece is featured on your bio for the choir to hear. Tom, Zahnay and the site admins can see how it is going and how long you have rehearsed.', 'ars-nova-practice' ); ?>
 	</p>
 
 	<?php foreach ( $anpr_data['projects'] as $anpr_block ) : ?>

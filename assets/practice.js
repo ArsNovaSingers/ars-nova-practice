@@ -71,17 +71,14 @@
 			return;
 		}
 		var tasks = week.querySelectorAll( '[data-anpr-task]' );
-		var done = week.querySelectorAll( '[data-anpr-task].is-done' ).length;
+		var done = week.querySelectorAll( '[data-anpr-rate][data-rated="1"]' ).length;
 		var total = tasks.length;
 		var el = function ( sel ) { return box.querySelector( sel ); };
 		if ( el( '[data-anpr-donecount]' ) ) {
 			el( '[data-anpr-donecount]' ).textContent = done + ' / ' + total;
 		}
-		if ( el( '[data-anpr-bar]' ) ) {
-			el( '[data-anpr-bar]' ).style.width = ( total ? Math.round( ( 100 * done ) / total ) : 0 ) + '%';
-		}
 		if ( el( '[data-anpr-donesr]' ) ) {
-			el( '[data-anpr-donesr]' ).textContent = fmt( T.doneOf || '%1$d of %2$d done', done, total );
+			el( '[data-anpr-donesr]' ).textContent = fmt( T.ratedOf || '%1$d of %2$d tasks rated', done, total );
 		}
 		var sum = 0;
 		var n = 0;
@@ -92,13 +89,21 @@
 				n++;
 			}
 		} );
+		var mean = n ? Math.round( sum / n ) : null;
+		if ( el( '[data-anpr-bar]' ) ) {
+			el( '[data-anpr-bar]' ).style.width = Math.min( 100, mean || 0 ) + '%';
+		}
 		var avg = el( '[data-anpr-avg]' );
 		if ( avg ) {
-			avg.textContent = n ? ( ( C.ratings || [] )[ Math.round( sum / n ) ] || '' ) : '—';
+			avg.textContent = null === mean ? '—' : mean + '%';
+		}
+		var stat = box.querySelector( '.anpr-stat--going' );
+		if ( stat ) {
+			stat.style.setProperty( '--anpr-conf', String( mean || 0 ) );
 		}
 		var note = el( '[data-anpr-avgnote]' );
 		if ( note ) {
-			note.textContent = n ? fmt( T.ratedOf || 'from %1$d of %2$d tasks', n, total ) : ( T.notRatedYet || 'not rated yet' );
+			note.textContent = null === mean ? ( T.saySomething || 'move a slider to say how it is going' ) : saying( mean );
 		}
 	}
 
@@ -148,39 +153,67 @@
 		} );
 	}
 
-	// ---------- done ----------
-	document.addEventListener( 'change', function ( e ) {
-		var box = e.target.closest && e.target.closest( '[data-anpr-done]' );
-		if ( ! box ) {
+	// ---------- how it is going (0-111%) ----------
+	var rateTimers = new WeakMap();
+
+	/** The sentence for a percentage, from the ladder the server passed down. */
+	function saying( value ) {
+		var steps = C.confidence || [];
+		var text = '';
+		steps.forEach( function ( step ) {
+			if ( value >= step[ 0 ] ) {
+				text = step[ 1 ];
+			}
+		} );
+		return text;
+	}
+
+	function showRating( input ) {
+		var wrap = input.closest( '.anpr-conf' );
+		var value = Number( input.value );
+		var text = saying( value );
+		if ( wrap ) {
+			wrap.classList.remove( 'is-unset' );
+			wrap.style.setProperty( '--anpr-conf', String( value ) );
+			var say = wrap.querySelector( '[data-anpr-say]' );
+			if ( say ) {
+				say.textContent = text;
+			}
+			var num = wrap.querySelector( '[data-anpr-num]' );
+			if ( num ) {
+				num.textContent = value + '%';
+			}
+		}
+		var task = input.closest( '[data-anpr-task]' );
+		if ( task ) {
+			task.classList.toggle( 'is-proud', value >= 100 );
+		}
+		input.setAttribute( 'aria-valuetext', text + ' — ' + value + '%' );
+		input.setAttribute( 'data-rated', '1' );
+	}
+
+	/** The "featured on your bio" line under the player, after the server answers. */
+	function showShared( task, on, message ) {
+		if ( ! task ) {
 			return;
 		}
-		var task = box.closest( '[data-anpr-task]' );
-		var d = ids( box );
-		d.event = box.checked ? 'done' : 'undone';
-		task.classList.toggle( 'is-done', box.checked );
-		updateRing( task.closest( '.anpr-week' ) );
-		send( d ).then( function () { showError( task, false ); } ).catch( function () {
-			box.checked = ! box.checked;
-			task.classList.toggle( 'is-done', box.checked );
-			updateRing( task.closest( '.anpr-week' ) );
-			showError( task, true );
-		} );
-	} );
-
-	// ---------- rating ----------
-	var rateTimers = new WeakMap();
-	function showRating( input ) {
-		var wrap = input.closest( '.anpr-rating' );
-		var out = wrap && wrap.querySelector( '.anpr-rating-out' );
-		var label = ( C.ratings || [] )[ Number( input.value ) ] || '';
-		if ( out ) {
-			out.textContent = label;
+		var note = task.querySelector( '[data-anpr-shared]' );
+		if ( ! note ) {
+			if ( ! on && ! message ) {
+				return;
+			}
+			note = document.createElement( 'p' );
+			note.className = 'anpr-shared';
+			note.setAttribute( 'data-anpr-shared', '' );
+			var body = task.querySelector( '.anpr-task-body' );
+			var err = task.querySelector( '.anpr-task-error' );
+			if ( body ) {
+				body.insertBefore( note, err || null );
+			}
 		}
-		input.setAttribute( 'aria-valuetext', label );
-		if ( wrap ) {
-			wrap.classList.remove( 'is-unrated' );
-		}
-		input.setAttribute( 'data-rated', '1' );
+		note.textContent = message || ( T.featured || 'Your newest take for this piece is featured on your bio for the choir to hear.' );
+		note.hidden = ! on && ! message;
+		note.classList.toggle( 'is-warning', !! message && ! on );
 	}
 	document.addEventListener( 'input', function ( e ) {
 		var input = e.target.closest && e.target.closest( '[data-anpr-rate]' );
@@ -201,7 +234,16 @@
 			var d = ids( input );
 			d.event = 'rate';
 			d.value = Number( input.value );
-			send( d ).then( function () { showError( task, false ); } ).catch( function () { showError( task, true ); } );
+			send( d ).then( function ( r ) {
+				showError( task, false );
+				if ( r && r.featured ) {
+					showShared( task, true, '' );
+				} else if ( r && r.featured_failed ) {
+					showShared( task, false, T.featuredNoTake || 'Save a take for this piece first, then it can be featured on your bio.' );
+				} else {
+					showShared( task, false, '' );
+				}
+			} ).catch( function () { showError( task, true ); } );
 		}, 400 ) );
 	} );
 	// A tap on an unrated slider at its resting value fires no change event.

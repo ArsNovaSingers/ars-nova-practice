@@ -70,7 +70,14 @@ class ANPR_Frontend {
 					'format' => ANPR_Takes::format(),
 					'limit'  => ANPR_Takes::limit(),
 				),
-				'ratings'   => ANPR_Tracking::rating_labels(),
+				'ratings'    => ANPR_Tracking::rating_labels(),
+				'confidence' => array_map(
+					static function ( $from, $text ) {
+						return array( (int) $from, $text );
+					},
+					array_keys( ANPR_Tracking::confidence_steps() ),
+					array_values( ANPR_Tracking::confidence_steps() )
+				),
 				'i18n'      => array(
 					'notRated'   => __( 'Not rated yet', 'ars-nova-practice' ),
 					'played'     => __( 'Played %d×', 'ars-nova-practice' ),
@@ -80,6 +87,15 @@ class ANPR_Frontend {
 					'loadFailed' => __( 'The practice player could not start in this browser. The tracks are also under Program Materials.', 'ars-nova-practice' ),
 					'saveFailed' => __( 'That did not save. Check your connection and try again.', 'ars-nova-practice' ),
 					'doneOf'     => __( '%1$d of %2$d done', 'ars-nova-practice' ),
+					/* translators: 1: rated tasks, 2: total tasks */
+					'ratedOf'    => __( '%1$d of %2$d tasks rated', 'ars-nova-practice' ),
+					'saySomething' => __( 'move a slider to say how it is going', 'ars-nova-practice' ),
+					'featured'   => __( 'Your newest take for this piece is featured on your bio for the choir to hear.', 'ars-nova-practice' ),
+					'featuredNoTake' => __( 'Save a take for this piece first, then it can be featured on your bio.', 'ars-nova-practice' ),
+					/* translators: %d: seconds */
+					'secLabel'   => __( '%d sec', 'ars-nova-practice' ),
+					/* translators: %d: minutes */
+					'minLabel'   => __( '%d min', 'ars-nova-practice' ),
 					'player'     => array(
 						'play'           => __( 'Play', 'ars-nova-practice' ),
 						'pause'          => __( 'Pause', 'ars-nova-practice' ),

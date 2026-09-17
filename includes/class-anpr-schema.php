@@ -6,7 +6,8 @@
  * project (see ANPR_Weeks), the same way the Hub keeps its materials. Only the
  * things that grow with every singer and every click get tables:
  *
- *  - anpr_progress: one row per singer per task — done, and the latest rating.
+ *  - anpr_progress: one row per singer per task — the latest confidence (0-111;
+ *                   0.6.0 replaced the Done tick and the 4-step rating).
  *  - anpr_events:   an append-only log — page views, score opens, plays,
  *                   listening time, done/undone, every rating change, and
  *                   saved-take activity (take / takeplay / takedel).
@@ -25,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class ANPR_Schema {
 
-	const DB_VERSION = '2'; // 2: anpr_takes (0.4.0).
+	const DB_VERSION = '3'; // 2: anpr_takes (0.4.0). 3: confidence + featured takes (0.6.0).
 	const OPTION     = 'anpr_db_version';
 
 	/**
@@ -68,6 +69,8 @@ class ANPR_Schema {
 			done_at datetime NULL DEFAULT NULL,
 			rating tinyint(4) NULL DEFAULT NULL,
 			rated_at datetime NULL DEFAULT NULL,
+			confidence smallint(6) NULL DEFAULT NULL,
+			confidence_at datetime NULL DEFAULT NULL,
 			updated_at datetime NOT NULL,
 			PRIMARY KEY  (user_id,task_id),
 			KEY project_week (project_id,week_id)
@@ -111,6 +114,8 @@ class ANPR_Schema {
 			bytes bigint(20) unsigned NOT NULL DEFAULT 0,
 			seconds int(10) unsigned NOT NULL DEFAULT 0,
 			status varchar(12) NOT NULL DEFAULT 'pending',
+			featured tinyint(1) NOT NULL DEFAULT 0,
+			featured_at datetime NULL DEFAULT NULL,
 			created_at datetime NOT NULL,
 			updated_at datetime NOT NULL,
 			PRIMARY KEY  (id),

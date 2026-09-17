@@ -45,6 +45,9 @@ class ANPR_Takes {
 	 */
 	public static function init() {
 		add_action( 'rest_api_init', array( __CLASS__, 'routes' ) );
+		// The featured clip on a singer's Hub bio page (0.6.0).
+		add_filter( 'the_content', array( __CLASS__, 'bio_content' ), 20 );
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'bio_assets' ), 20 );
 	}
 
 	/**
@@ -180,6 +183,7 @@ class ANPR_Takes {
 	 */
 	public static function public_shape( $row ) {
 		return array(
+			'featured' => ! empty( $row->featured ),
 			'id'      => (string) $row->uuid,
 			'name'    => (string) $row->name,
 			'piece'   => (string) $row->piece_key,
@@ -259,6 +263,137 @@ class ANPR_Takes {
 	}
 
 	// ------------------------------------------------------------------
+	// The featured clip (0.6.0).
+	// ------------------------------------------------------------------
+
+	/**
+	 * Feature this singer's newest take for a piece, or clear the piece's star.
+	 *
+	 * Jonathan, 2026-09-17: pushing "How is it going?" all the way to 111% puts
+	 * the singer's latest saved take for that piece on their Hub bio, where
+	 * other signed-in choir members can hear it. Sliding back below 111 takes it
+	 * down again. One featured take per piece.
+	 *
+	 * @param int    $user_id    Singer.
+	 * @param int    $project_id Concert.
+	 * @param string $piece_key  Piece.
+	 * @param bool   $on         Feature or unfeature.
+	 * @return array { featured: bool, take: array|null }
+	 */
+	public static function set_featured( $user_id, $project_id, $piece_key, $on ) {
+		global $wpdb;
+		$table = self::table();
+		$now   = current_time( 'mysql', true );
+		$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET featured = 0, featured_at = NULL WHERE user_id = %d AND project_id = %d AND piece_key = %s", (int) $user_id, (int) $project_id, (string) $piece_key ) ); // phpcs:ignore WordPress.DB
+		if ( ! $on ) {
+			return array( 'featured' => false, 'take' => null );
+		}
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE user_id = %d AND project_id = %d AND piece_key = %s AND status = 'ready' ORDER BY id DESC LIMIT 1", (int) $user_id, (int) $project_id, (string) $piece_key ) ); // phpcs:ignore WordPress.DB
+		if ( ! $row ) {
+			return array( 'featured' => false, 'take' => null );
+		}
+		$wpdb->update( $table, array( 'featured' => 1, 'featured_at' => $now, 'updated_at' => $now ), array( 'id' => (int) $row->id ) );
+		return array( 'featured' => true, 'take' => self::public_shape( self::find( $row->uuid ) ) );
+	}
+
+	/**
+	 * A singer's featured takes, newest first (for their bio page).
+	 *
+	 * @param int $user_id Singer.
+	 * @return array
+	 */
+	public static function featured_for_user( $user_id ) {
+		global $wpdb;
+		$table = self::table();
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE user_id = %d AND featured = 1 AND status = 'ready' ORDER BY featured_at DESC LIMIT 5", (int) $user_id ) ); // phpcs:ignore WordPress.DB
+		$out   = array();
+		foreach ( (array) $rows as $row ) {
+			$take            = self::public_shape( $row );
+			$take['project'] = get_the_title( (int) $row->project_id );
+			$out[]           = $take;
+		}
+		return $out;
+	}
+
+	/**
+	 * May this viewer hear other singers' featured clips? Any signed-in member.
+	 *
+	 * @param int $user_id Viewer.
+	 * @return bool
+	 */
+	public static function can_hear_featured( $user_id ) {
+		return $user_id && ( user_can( $user_id, 'ansp_view_portal' ) || ANSP_Permissions::is_manager( $user_id ) );
+	}
+
+	/**
+	 * The featured clips under a singer's bio, for choir members only.
+	 *
+	 * @param string $content Post content.
+	 * @return string
+	 */
+	public static function bio_content( $content ) {
+		if ( ! is_singular( 'singer' ) || ! in_the_loop() || ! is_main_query() ) {
+			return $content;
+		}
+		$viewer = get_current_user_id();
+		if ( ! self::can_hear_featured( $viewer ) ) {
+			return $content;
+		}
+		$profile = get_the_ID();
+		$owner   = class_exists( 'ANSP_Profiles' ) ? (int) ANSP_Profiles::get_user_for_profile( $profile ) : 0;
+		if ( ! $owner ) {
+			return $content;
+		}
+		$takes = self::featured_for_user( $owner );
+		if ( ! $takes ) {
+			return $content;
+		}
+		ob_start();
+		?>
+		<section class="anpr-featured" data-anpr-featured>
+			<h3><?php esc_html_e( 'Featured clips', 'ars-nova-practice' ); ?></h3>
+			<p class="anpr-featured-note"><?php esc_html_e( 'Practice takes this singer chose to share with the choir.', 'ars-nova-practice' ); ?></p>
+			<ul>
+				<?php foreach ( $takes as $take ) : ?>
+					<li>
+						<button type="button" class="anpr-btn anpr-featured-play" data-anpr-featured-take="<?php echo esc_attr( $take['id'] ); ?>">
+							<?php esc_html_e( 'Play', 'ars-nova-practice' ); ?>
+						</button>
+						<span class="anpr-featured-name"><?php echo esc_html( $take['name'] ); ?></span>
+						<span class="anpr-featured-meta"><?php echo esc_html( trim( $take['track'] . ' · ' . $take['project'], ' ·' ) ); ?></span>
+					</li>
+				<?php endforeach; ?>
+			</ul>
+		</section>
+		<?php
+		return $content . ob_get_clean();
+	}
+
+	/**
+	 * The tiny player used on bio pages.
+	 */
+	public static function bio_assets() {
+		if ( ! is_singular( 'singer' ) || ! self::can_hear_featured( get_current_user_id() ) ) {
+			return;
+		}
+		wp_enqueue_style( 'anpr-practice' );
+		wp_enqueue_script( 'anpr-bio', ANPR_URL . 'assets/bio.js', array(), ANPR_VERSION, true );
+		wp_localize_script(
+			'anpr-bio',
+			'ANPRBIO',
+			array(
+				'rest'  => esc_url_raw( rest_url( ANPR_Tracking::NS . '/takes/url' ) ),
+				'nonce' => wp_create_nonce( 'wp_rest' ),
+				'i18n'  => array(
+					'play'   => __( 'Play', 'ars-nova-practice' ),
+					'pause'  => __( 'Pause', 'ars-nova-practice' ),
+					'failed' => __( 'That clip could not be played.', 'ars-nova-practice' ),
+				),
+			)
+		);
+	}
+
+	// ------------------------------------------------------------------
 	// REST.
 	// ------------------------------------------------------------------
 
@@ -296,7 +431,11 @@ class ANPR_Takes {
 			return new WP_Error( 'anpr_not_found', __( 'That take no longer exists.', 'ars-nova-practice' ), array( 'status' => 404 ) );
 		}
 		$owner = (int) $row->user_id === $user_id;
-		if ( ! $owner && ! ( $listen && ANSP_Permissions::is_manager( $user_id ) ) ) {
+		$may   = $owner
+			|| ( $listen && ANSP_Permissions::is_manager( $user_id ) )
+			// A featured clip is one the singer chose to share with the choir (0.6.0).
+			|| ( $listen && ! empty( $row->featured ) && self::can_hear_featured( $user_id ) );
+		if ( ! $may ) {
 			return new WP_Error( 'anpr_forbidden', 'Not allowed.', array( 'status' => 403 ) );
 		}
 		return $row;

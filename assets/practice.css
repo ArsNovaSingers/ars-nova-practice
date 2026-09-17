@@ -159,75 +159,71 @@
 .anpr-task-title { display: block; margin: 0; font-size: 1.05rem; font-weight: 700; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; }
 .anpr-task-num { color: var(--anpr-muted); font-weight: 400; margin-right: 0.15em; }
 .anpr-task-meta { display: block; margin: 0; font-size: 0.85em; color: var(--anpr-muted); }
-.anpr-task.is-done .anpr-task-title { color: var(--anpr-done); }
 .anpr-task-detail { margin: 0.5rem 0 0; }
 .anpr-task-detail p { margin: 0 0 0.4rem; }
 
-/* Done switch (Jonathan, 2026-09-17: the bare checkbox was unclear). Starts
-   red "Not done"; flips to green "Done". Sits at the right of the task title. */
-.anpr-task-head .anpr-task-titles { flex: 1 1 auto; }
-.anpr-done {
-	--anpr-no: #c62828;
-	position: relative;
+/* ---------- how it is going: one slider, 0-111% (0.6.0) ----------
+   Jonathan: the Done switch is gone; this sits in its place. The colour runs
+   red -> amber -> green with the value, and the sentence above it grows in
+   confidence. 111% features the singer's newest take on their bio. */
+.anpr-conf {
+	--anpr-conf: 0;
+	/* red at 0, amber in the middle, green at 100, gold at 111 */
+	--anpr-conf-hue: calc(var(--anpr-conf) * 1.15);
+	--anpr-conf-color: hsl(min(var(--anpr-conf-hue), 130), 72%, 38%);
 	flex: 0 0 auto;
-	order: 2;
-	display: inline-flex;
-	align-items: center;
-	gap: 0.5rem;
-	min-height: 2.5rem;
+	display: grid;
+	gap: 0.15rem;
+	width: 15rem;
+	max-width: 46%;
 	margin: 0;
-	padding: 0.3rem 0.8rem 0.3rem 0.35rem;
-	border: 2px solid var(--anpr-no);
-	border-radius: 999px;
-	background: #fdecec;
-	color: var(--anpr-no);
-	font-weight: 700;
-	font-size: 0.95em;
-	line-height: 1;
-	white-space: nowrap;
-	cursor: pointer;
-	user-select: none;
-	-webkit-user-select: none;
-}
-.anpr-done input {
-	position: absolute;
-	inset: 0;
-	width: 100%;
-	height: 100%;
-	margin: 0;
-	opacity: 0;
-	cursor: pointer;
-}
-.anpr-switch {
-	position: relative;
-	display: block;
-	flex: 0 0 auto;
-	width: 2.75rem;
-	height: 1.6rem;
-	border-radius: 999px;
-	background: var(--anpr-no);
-	transition: background-color 0.15s ease;
-}
-.anpr-switch-knob {
-	position: absolute;
-	top: 0.2rem;
-	left: 0.2rem;
-	width: 1.2rem;
-	height: 1.2rem;
-	border-radius: 50%;
+	padding: 0.35rem 0.55rem 0.45rem;
+	border: 2px solid var(--anpr-conf-color);
+	border-radius: 12px;
 	background: #fff;
-	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-	transition: transform 0.15s ease;
 }
-.anpr-switch-on { display: none; }
-.anpr-done input:checked ~ .anpr-switch { background: var(--anpr-done); }
-.anpr-done input:checked ~ .anpr-switch .anpr-switch-knob { transform: translateX(1.15rem); }
-.anpr-done input:checked ~ .anpr-switch-off { display: none; }
-.anpr-done input:checked ~ .anpr-switch-on { display: inline; }
-.anpr-done input:checked ~ .anpr-switch-on::before { content: "\2713\00a0"; }
-.anpr-task.is-done .anpr-done { border-color: var(--anpr-done); background: #e8f5ee; color: var(--anpr-done); }
-.anpr-done:has(input:focus-visible) { outline: 3px solid var(--anpr-accent); outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { .anpr-switch, .anpr-switch-knob { transition: none; } }
+.anpr-conf.is-unset { --anpr-conf-color: var(--anpr-border); }
+.anpr-conf-say {
+	font-size: 0.78em;
+	font-weight: 700;
+	line-height: 1.15;
+	color: var(--anpr-conf-color);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.anpr-conf.is-unset .anpr-conf-say { color: var(--anpr-muted); }
+.anpr-conf-row { display: flex; align-items: center; gap: 0.4rem; }
+.anpr-page .anpr-conf input[type="range"] {
+	flex: 1 1 auto;
+	width: 100%;
+	min-width: 0;
+	margin: 0;
+	accent-color: var(--anpr-conf-color);
+}
+.anpr-conf-num {
+	flex: 0 0 auto;
+	min-width: 2.6rem;
+	text-align: right;
+	font-size: 0.8em;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+	color: var(--anpr-conf-color);
+}
+.anpr-task.is-proud .anpr-task-title { color: #1f7a45; }
+.anpr-shared {
+	margin: 0.4rem 0 0;
+	padding: 0.4rem 0.6rem;
+	border-radius: 8px;
+	background: #e8f5ee;
+	color: #1f7a45;
+	font-size: 0.85em;
+	font-weight: 600;
+}
+.anpr-shared.is-warning { background: #fdecec; color: #a4231b; }
+.anpr-stat--going { --anpr-conf: 0; }
+.anpr-stat--going .anpr-stat-value { color: hsl(min(calc(var(--anpr-conf) * 1.15), 130), 72%, 38%); }
+.anpr-stat--going .anpr-bar-fill { background: hsl(min(calc(var(--anpr-conf) * 1.15), 130), 72%, 38%); }
 
 .anpr-task-links,
 .anpr-practice,
@@ -537,7 +533,7 @@
 	.anpr-stat--going { grid-column: 1 / -1; }
 	.anpr-stat-value { font-size: 1.15rem; }
 	.anpr-task-head { flex-wrap: wrap; }
-	.anpr-task-head .anpr-done { margin-left: auto; }
+	.anpr-conf { width: 100%; max-width: 100%; margin-left: auto; }
 	.anpr-openfile, .anpr-openfile-name { max-width: 100%; }
 	.anpr-player { padding: 0.5rem; }
 	.anpr-player-bar { grid-template-columns: auto 1fr; padding: 0.5rem; }
@@ -550,3 +546,18 @@
 	.anpr-lower { grid-template-columns: 1fr; }
 	.anpr-lower .anpr-takes { order: -1; }
 }
+
+/* ---------- featured clips on a singer's bio (0.6.0) ---------- */
+.anpr-featured {
+	margin: 1.5rem 0;
+	padding: 0.9rem 1rem;
+	border: 1px solid var(--ansp-border, #dfe3ea);
+	border-radius: 10px;
+	background: #fbfcfe;
+}
+.anpr-featured h3 { margin: 0 0 0.2rem; font-size: 1.1rem; }
+.anpr-featured-note { margin: 0 0 0.6rem; font-size: 0.85em; color: #5b6472; }
+.anpr-featured ul { list-style: none; margin: 0; padding: 0; }
+.anpr-featured li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; padding: 0.4rem 0; border-top: 1px solid var(--ansp-border, #dfe3ea); }
+.anpr-featured-name { font-weight: 600; }
+.anpr-featured-meta { font-size: 0.8em; color: #5b6472; }

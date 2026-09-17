@@ -4,7 +4,7 @@ Tags: choir, practice, assignments, rehearsal
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.5.0
+Stable tag: 0.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,7 +15,7 @@ Weekly practice assignments for the Ars Nova Singers Hub. Add-on for the Ars Nov
 **For singers** — "This Week's Assignments" on the Singers Hub becomes a week-by-week homework page:
 
 * This week's tasks first, with "have ready by" and the director's note; earlier and upcoming weeks folded away.
-* Each task: a Not done / Done switch, saved practice takes (see 0.4.0), a Bad · Fair · Good · Great slider, the score/link buttons, and a **practice player**.
+* Each task: one “How is this going?” slider from 0 to 111%, red through yellow to green, with a sentence that grows in confidence; saved practice takes (see 0.4.0); the score/link buttons; and a **practice player**.
 * Each practice track opens in its own player: green Play, red Record and black Stop side by side, Mute / Solo / Volume / Pan on the track, zoom, and takes recorded underneath that can be selected and deleted.
 * A task can carry one track per voice part; each singer gets their own part's track.
 * Optional **recording test**: record takes over the track with wired headphones (the page records the microphone only), hear them back, delete and retry, and download one. Nothing is uploaded in this version. Off / staff only / everyone, under Practice → Settings (default: staff only).
@@ -23,7 +23,7 @@ Weekly practice assignments for the Ars Nova Singers Hub. Add-on for the Ars Nov
 **For Tom and Zahnay** — wp-admin → Practice:
 
 * **Weekly builder**: weeks with title, "have ready by" date, rehearsal label, "show to singers from" date, note, Draft/Published; tasks with minutes, details, voice parts, and music attached from the concert's own materials (scores and links open; recordings play in the practice player, with a voice part, a starting ear and "starts muted"). Copy a week, reorder, delete.
-* **Progress**: per week and singer — week opened, ticks, ratings, plays (20 seconds or more in one sitting), minutes listened, score opens; who has not opened the week; tasks rated "Bad".
+* **Progress**: per week and singer — week opened, how it is going (the singer’s own 0–111% slider, averaged), time rehearsed, tasks rated, plays (20 seconds or more in one sitting), minutes listened, score opens; who has not opened the week; tasks at 25% or under.
 
 Drafts are shown to staff on the Hub page itself, so the Hub is the preview.
 
@@ -34,6 +34,14 @@ Drafts are shown to staff on the Hub page itself, so the Hub is the preview.
 The practice player is built on **@dawcore/components** from waveform-playlist by Naomi Aro (MIT License) — https://github.com/naomiaro/waveform-playlist. The built browser bundle is in `assets/player/`, with every bundled licence in `assets/player/THIRD-PARTY-LICENSES.txt` (MIT and BSD-3-Clause, plus waveform-data under LGPL-3.0). Its source, exact versions and build script are in the repository's `player-src/` folder, so the bundle can be rebuilt with any of those libraries replaced.
 
 == Changelog ==
+
+= 0.6.0 =
+One slider instead of Done (Jonathan, 2026-09-17).
+* **The Done / Not done switch is gone.** Its place in the task header is now the “How is this going?” slider: 0 to 111%, red → yellow → green as it rises, with a sentence above it that grows in confidence — “Never tried”, “Not bad for a first go”, “Could be better”, “Making real progress”, “Pretty good”, “Really starting to sound good”, “Nearly concert ready”, “Nailed it”, “Off book and loving it”.
+* **111%.** The top of the slider says “111%. Feature this on my bio!” and features the singer’s newest saved take for that piece on their Singers Hub bio, where other signed-in choir members can play it. Moving the slider back below 111% takes it down again.
+* **Nothing counts as “done” any more.** The week summary shows how it is going (the average of the singer’s sliders), time rehearsed, and how many tasks they have rated.
+* **Progress report** follows: an average “how it is going” for the choir and per singer, “rated every task”, and tasks at 25% or under flagged under “Needs attention”. Each cell shows the singer’s own percentage and sentence.
+* Ratings set before 0.6.0 still show (Bad / Fair / Good / Great read as 10 / 40 / 70 / 100%). New table columns `confidence`, `confidence_at` on `anpr_progress` and `featured`, `featured_at` on `anpr_takes` (schema 3).
 
 = 0.5.0 =
 The week as a set of task accordions (Jonathan, 2026-09-17).
