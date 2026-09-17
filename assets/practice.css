@@ -76,7 +76,7 @@
 /* ---------- week summary (0.5.0) ---------- */
 .anpr-summary {
 	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
+	grid-template-columns: minmax(0, 0.7fr) repeat(3, minmax(0, 1fr));
 	gap: 0.75rem;
 	margin: 0.75rem 0 0.25rem;
 	padding: 0.7rem 0.85rem;
@@ -540,6 +540,7 @@
 	.anpr-week { padding: 0.8rem 0.75rem 0.4rem; }
 	.anpr-daw { --daw-controls-width: 172px; }
 	.anpr-summary { grid-template-columns: 1fr 1fr; }
+	.anpr-stat--grade { grid-column: 1 / -1; }
 	.anpr-stat--going { grid-column: 1 / -1; }
 	.anpr-stat-value { font-size: 1.15rem; }
 	.anpr-task-head { flex-wrap: wrap; }

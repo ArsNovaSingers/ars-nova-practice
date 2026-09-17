@@ -4,7 +4,7 @@ Tags: choir, practice, assignments, rehearsal
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.7.0
+Stable tag: 0.7.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -35,6 +35,10 @@ Drafts are shown to staff on the Hub page itself, so the Hub is the preview.
 The practice player is built on **@dawcore/components** from waveform-playlist by Naomi Aro (MIT License) — https://github.com/naomiaro/waveform-playlist. The built browser bundle is in `assets/player/`, with every bundled licence in `assets/player/THIRD-PARTY-LICENSES.txt` (MIT and BSD-3-Clause, plus waveform-data under LGPL-3.0). Its source, exact versions and build script are in the repository's `player-src/` folder, so the bundle can be rebuilt with any of those libraries replaced.
 
 == Changelog ==
+
+= 0.7.1 =
+* **“Needs attention” is readable again.** Counting an unstarted task as a zero (0.7.0) also dropped every unstarted task onto that list — 116 lines on staging the moment a week was published, which is every singer times every task. It now lists only singers who have worked at a task and put it at 25% or under; who has started nothing is a folded one-line list underneath, and a card counts them.
+* The week summary is four across on a wide screen now that the grade sits beside the score.
 
 = 0.7.0 =
 A grade, and a zero that actually costs something (Jonathan, 2026-09-17).

@@ -423,8 +423,9 @@ class ANPR_Admin {
 		$all_rated = 0;
 		$conf_sum  = 0;
 		$conf_n    = 0;
-		$not_seen  = array();
-		$struggles = array();
+		$not_seen    = array();
+		$struggles   = array();
+		$not_started = array();
 		foreach ( $singers as $u ) {
 			$parts = ANSP_Permissions::get_user_voice_parts( $u->ID );
 			$s     = isset( $summary[ $u->ID ] ) ? $summary[ $u->ID ] : null;
@@ -444,18 +445,28 @@ class ANPR_Admin {
 				$conf = $ts ? ANPR_Tracking::confidence_of( $ts ) : null;
 				if ( null !== $conf ) {
 					++$rated;
+					/*
+					 * Needs attention is for a singer who HAS tried and is struggling.
+					 * A task nobody has started is a zero in the score (that is the
+					 * point of 0.7.0) but it does not belong on this list: on the first
+					 * day of a week that would be every singer times every task, which
+					 * is exactly what it was — 116 lines on staging, and unreadable.
+					 * Who has started nothing is the folded list below instead.
+					 */
+					if ( $conf <= self::NEEDS_HELP ) {
+						$struggles[] = $u->display_name . ' — ' . $t['title'] . ' (' . $conf . '%)';
+					}
 				}
-				// 0.7.0: a task the singer has not started counts as a zero here too,
-				// so the choir average cannot be flattered by everyone skipping.
+				// A task the singer has not started counts as a zero, so the choir
+				// average cannot be flattered by everyone skipping.
 				$conf_sum += null === $conf ? 0 : (int) $conf;
 				++$conf_n;
-				if ( ( null === $conf ? 0 : $conf ) <= self::NEEDS_HELP ) {
-					$struggles[] = $u->display_name . ' — ' . $t['title']
-						. ' (' . ( null === $conf ? __( 'not started', 'ars-nova-practice' ) : $conf . '%' ) . ')';
-				}
 			}
 			if ( $mine && $rated === $mine ) {
 				++$all_rated;
+			}
+			if ( $mine && 0 === $rated ) {
+				$not_started[] = $u->display_name;
 			}
 		}
 		$n        = count( $singers );
@@ -473,7 +484,7 @@ class ANPR_Admin {
 				<?php endif; ?>
 			</div>
 			<div class="anpr-card"><span class="anpr-card-num"><?php echo esc_html( $all_rated . ' / ' . $n ); ?></span><?php esc_html_e( 'rated every task', 'ars-nova-practice' ); ?></div>
-			<div class="anpr-card"><span class="anpr-card-num"><?php echo esc_html( (string) count( $struggles ) ); ?></span><?php echo esc_html( sprintf( /* translators: %d: percentage */ __( 'tasks at %d%% or under', 'ars-nova-practice' ), self::NEEDS_HELP ) ); ?></div>
+			<div class="anpr-card"><span class="anpr-card-num"><?php echo esc_html( (string) count( $not_started ) ); ?></span><?php esc_html_e( 'have not started anything', 'ars-nova-practice' ); ?></div>
 		</div>
 
 		<?php if ( 'published' !== $week['status'] ) : ?>
@@ -482,11 +493,19 @@ class ANPR_Admin {
 
 		<?php if ( $struggles ) : ?>
 			<h2><?php esc_html_e( 'Needs attention', 'ars-nova-practice' ); ?></h2>
+			<p class="description"><?php echo esc_html( sprintf( /* translators: %d: percentage */ __( 'Singers who have worked at a task and put it at %d%% or under. Tasks nobody has opened are in the list below, not here.', 'ars-nova-practice' ), self::NEEDS_HELP ) ); ?></p>
 			<ul class="anpr-attention">
 				<?php foreach ( $struggles as $line ) : ?>
 					<li><?php echo esc_html( $line ); ?></li>
 				<?php endforeach; ?>
 			</ul>
+		<?php endif; ?>
+
+		<?php if ( $not_started ) : ?>
+			<details class="anpr-notseen">
+				<summary><?php echo esc_html( sprintf( /* translators: %d: count */ _n( '%d singer has not started any task this week', '%d singers have not started any task this week', count( $not_started ), 'ars-nova-practice' ), count( $not_started ) ) ); ?></summary>
+				<p><?php echo esc_html( implode( ', ', $not_started ) ); ?></p>
+			</details>
 		<?php endif; ?>
 
 		<?php if ( $not_seen && $n ) : ?>
