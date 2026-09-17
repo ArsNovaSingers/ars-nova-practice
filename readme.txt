@@ -4,7 +4,7 @@ Tags: choir, practice, assignments, rehearsal
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.2.0
+Stable tag: 0.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,6 +34,15 @@ Drafts are shown to staff on the Hub page itself, so the Hub is the preview.
 The practice player is built on **@dawcore/components** from waveform-playlist by Naomi Aro (MIT License) — https://github.com/naomiaro/waveform-playlist. The built browser bundle is in `assets/player/`, with every bundled licence in `assets/player/THIRD-PARTY-LICENSES.txt` (MIT and BSD-3-Clause, plus waveform-data under LGPL-3.0). Its source, exact versions and build script are in the repository's `player-src/` folder, so the bundle can be rebuilt with any of those libraries replaced.
 
 == Changelog ==
+
+= 0.3.0 =
+A two-track recorder laid out like a pro multitrack (Jonathan, 2026-09-17, after Adobe Audition).
+* **Two tracks per practice block, stacked.** Track 1 is the practice material; Track 2 is "My take". Recording again replaces the take — there is only ever one.
+* **Track headers:** name, **M / S / R** buttons and rotary **Volume** and **Pan** dials with their values. Drag a dial up or down (Shift for fine), use the arrow keys, or double-click to reset. Track 1 has no R.
+* **R arms Track 2** (armed when the player opens). While armed and the microphone is on, a level meter under the header shows your input.
+* **Transport and zoom at the bottom:** time on the left, black Stop, green Play (turns to Pause) and red Record in the middle, zoom on the right.
+* **Under the player:** timing correction, clear-my-take (bin or Delete key after clicking the take) and download.
+* The whole piece fits the player when it opens, even when it was opened inside a hidden tab; the site theme no longer boxes the range slider.
 
 = 0.2.0 =
 The practice player, redesigned to Jonathan's direction (2026-09-17).
