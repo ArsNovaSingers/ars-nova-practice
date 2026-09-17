@@ -237,7 +237,7 @@
 	width: 100%;
 	border-radius: 6px;
 	overflow: hidden;
-	--daw-controls-width: 120px;
+	--daw-controls-width: 190px;
 	--daw-background: #1d2433;
 	--daw-track-background: #242d40;
 	--daw-controls-background: #1d2433;
@@ -247,35 +247,6 @@
 	--daw-ruler-background: #161b27;
 	--daw-min-height: 80px;
 }
-.anpr-mixer { list-style: none; margin: 0.75rem 0 0; padding: 0; }
-.anpr-mix-row {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	justify-content: space-between;
-	gap: 0.4rem 1rem;
-	padding: 0.5rem 0;
-	border-top: 1px solid var(--anpr-border);
-}
-.anpr-mix-label { min-width: 10rem; flex: 1 1 12rem; }
-.anpr-mix-name { font-weight: 600; }
-.anpr-mix-row.is-failed .anpr-mix-name { color: #a4231b; }
-.anpr-mix-error { display: block; font-size: 0.85em; color: #a4231b; }
-.anpr-mix-part {
-	margin-left: 0.4rem;
-	padding: 0.05rem 0.45rem;
-	border-radius: 999px;
-	background: var(--anpr-soft);
-	font-size: 0.8em;
-}
-.anpr-mix-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
-.anpr-vol input { width: 7rem; accent-color: var(--anpr-accent); vertical-align: middle; }
-.anpr-ears { display: inline-flex; }
-.anpr-ears .anpr-btn { border-radius: 0; min-width: 3.4rem; }
-.anpr-ears .anpr-btn:first-child { border-radius: 8px 0 0 8px; }
-.anpr-ears .anpr-btn:last-child { border-radius: 0 8px 8px 0; }
-.anpr-ears .anpr-btn + .anpr-btn { margin-left: -1px; }
-
 .anpr-rec {
 	margin-top: 1rem;
 	padding-top: 0.75rem;
@@ -290,6 +261,68 @@
 .anpr-rec-status { margin: 0.3rem 0; font-weight: 600; }
 .anpr-btn--rec.is-recording { background: #a4231b; border-color: #a4231b; color: #fff !important; }
 
+/* ---------- one player per track ---------- */
+.anpr-track-list { list-style: none; margin: 0; padding: 0; }
+.anpr-track-item + .anpr-track-item { margin-top: 0.5rem; }
+.anpr-track-open { gap: 0.6rem; width: 100%; justify-content: flex-start; text-align: left; }
+.anpr-track-open.is-open { border-color: var(--anpr-accent); background: var(--anpr-soft); }
+.anpr-track-play {
+	flex: 0 0 auto;
+	width: 1.9rem;
+	height: 1.9rem;
+	border-radius: 50%;
+	background: #1f9d55;
+	position: relative;
+}
+.anpr-track-play::after {
+	content: "";
+	position: absolute;
+	left: 0.72rem;
+	top: 0.55rem;
+	border-style: solid;
+	border-width: 0.4rem 0 0.4rem 0.65rem;
+	border-color: transparent transparent transparent #fff;
+}
+.anpr-track-open.is-open .anpr-track-play { background: var(--anpr-accent); }
+.anpr-track-name { font-weight: 600; }
+.anpr-practice-bar { margin-top: 0.4rem; }
+
+/* ---------- transport and icons ---------- */
+.anpr-transport { display: inline-flex; gap: 0.5rem; }
+.anpr-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 3rem;
+	height: 3rem;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	cursor: pointer;
+	color: #fff;
+	background: #444;
+	text-decoration: none;
+}
+.anpr-icon svg { width: 1.6rem; height: 1.6rem; fill: currentColor; }
+.anpr-icon:focus-visible { outline: 3px solid var(--anpr-accent); outline-offset: 2px; }
+.anpr-icon[disabled] { opacity: 0.4; cursor: default; }
+.anpr-icon--play { background: #1f9d55; }
+.anpr-icon--play.is-on { background: #16733e; }
+.anpr-icon--record { background: #d62828; }
+.anpr-icon--record.is-on { animation: anpr-pulse 1.2s ease-in-out infinite; box-shadow: 0 0 0 4px rgba(214, 40, 40, 0.3); }
+.anpr-icon--stop { background: #111; }
+.anpr-icon--small { width: 2.4rem; height: 2.4rem; background: #fff; color: #1d2433; border: 1px solid var(--anpr-border); }
+.anpr-icon--small svg { width: 1.3rem; height: 1.3rem; }
+.anpr-icon--trash:not([disabled]) { color: #a4231b; border-color: #a4231b; }
+.anpr-icon[hidden] { display: none !important; }
+@keyframes anpr-pulse { 50% { box-shadow: 0 0 0 9px rgba(214, 40, 40, 0.15); } }
+@media (prefers-reduced-motion: reduce) { .anpr-icon--record.is-on { animation: none; } }
+.anpr-zoom { display: inline-flex; gap: 0.3rem; margin-left: auto; }
+.anpr-status.is-error { color: #a4231b; font-weight: 600; }
+.anpr-under { margin-top: 0.6rem; }
+.anpr-take-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0.4rem 0; }
+.anpr-take-tools .anpr-rec-help { margin: 0; }
+
 @media (max-width: 600px) {
 	.anpr-task-detail,
 	.anpr-task-links,
@@ -297,5 +330,6 @@
 	.anpr-rating,
 	.anpr-task-error { margin-left: 0; }
 	.anpr-week { padding: 0.8rem 0.75rem 0.4rem; }
-	.anpr-daw { --daw-controls-width: 92px; }
+	.anpr-daw { --daw-controls-width: 150px; }
+	.anpr-zoom { margin-left: 0; }
 }

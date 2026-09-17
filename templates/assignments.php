@@ -192,13 +192,35 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 
 							<?php if ( ! empty( $mats['tracks'] ) ) : ?>
 								<div class="anpr-practice">
+									<?php
+									/*
+									 * One player per practice track (Jonathan, 2026-09-17): each track
+									 * opens on its own, with its own Play / Record / Stop, and takes
+									 * are recorded under that track only.
+									 */
+									?>
+									<ul class="anpr-track-list">
+										<?php foreach ( $mats['tracks'] as $ti => $track ) : ?>
+											<li class="anpr-track-item" data-anpr-track-index="<?php echo esc_attr( (string) $ti ); ?>">
+												<button type="button" class="anpr-btn anpr-track-open" data-anpr-player-toggle aria-expanded="false" aria-controls="<?php echo esc_attr( $dom . '-player-' . $ti ); ?>">
+													<span class="anpr-track-play" aria-hidden="true"></span>
+													<span class="anpr-track-name">
+														<?php
+														echo esc_html(
+															( count( $mats['tracks'] ) > 1 ? sprintf( /* translators: %d: track number */ __( 'Track %d', 'ars-nova-practice' ), $ti + 1 ) . ' · ' : '' )
+															. $track['title']
+														);
+														?>
+													</span>
+													<?php if ( '' !== $track['part'] ) : ?>
+														<span class="anpr-mix-part"><?php echo esc_html( $track['part'] ); ?></span>
+													<?php endif; ?>
+												</button>
+												<div class="anpr-player-host" id="<?php echo esc_attr( $dom . '-player-' . $ti ); ?>" hidden></div>
+											</li>
+										<?php endforeach; ?>
+									</ul>
 									<div class="anpr-practice-bar">
-										<button type="button" class="anpr-btn anpr-btn--primary" data-anpr-player-toggle aria-expanded="false" aria-controls="<?php echo esc_attr( $dom . '-player' ); ?>">
-											<?php
-											/* translators: %d: number of tracks */
-											echo esc_html( sprintf( _n( 'Practice track', 'Practice tracks (%d)', count( $mats['tracks'] ), 'ars-nova-practice' ), count( $mats['tracks'] ) ) );
-											?>
-										</button>
 										<span class="anpr-plays" data-anpr-plays="<?php echo esc_attr( (string) $plays ); ?>">
 											<?php
 											echo esc_html(

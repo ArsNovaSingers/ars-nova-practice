@@ -4,7 +4,7 @@ Tags: choir, practice, assignments, rehearsal
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.1.3
+Stable tag: 0.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -16,9 +16,9 @@ Weekly practice assignments for the Ars Nova Singers Hub. Add-on for the Ars Nov
 
 * This week's tasks first, with "have ready by" and the director's note; earlier and upcoming weeks folded away.
 * Each task: a Done tick, a Bad · Fair · Good · Great slider, the score/link buttons, and a **practice player**.
-* The practice player plays every attached track together. Each track has Mute, Volume and Ear (left / both / right), so a singer can keep the backing track in both ears and their own part in one ear, or mute their part and sing it alone.
+* Each practice track opens in its own player: green Play, red Record and black Stop side by side, Mute / Solo / Volume / Pan on the track, zoom, and takes recorded underneath that can be selected and deleted.
 * A task can carry one track per voice part; each singer gets their own part's track.
-* Optional **recording test**: record a take over the music with wired headphones (the page records the microphone only), hear it back with or without the music, and download it. Nothing is uploaded in this version. Off / staff only / everyone, under Practice → Settings (default: staff only).
+* Optional **recording test**: record takes over the track with wired headphones (the page records the microphone only), hear them back, delete and retry, and download one. Nothing is uploaded in this version. Off / staff only / everyone, under Practice → Settings (default: staff only).
 
 **For Tom and Zahnay** — wp-admin → Practice:
 
@@ -34,6 +34,15 @@ Drafts are shown to staff on the Hub page itself, so the Hub is the preview.
 The practice player is built on **@dawcore/components** from waveform-playlist by Naomi Aro (MIT License) — https://github.com/naomiaro/waveform-playlist. The built browser bundle is in `assets/player/`, with every bundled licence in `assets/player/THIRD-PARTY-LICENSES.txt` (MIT and BSD-3-Clause, plus waveform-data under LGPL-3.0). Its source, exact versions and build script are in the repository's `player-src/` folder, so the bundle can be rebuilt with any of those libraries replaced.
 
 == Changelog ==
+
+= 0.2.0 =
+The practice player, redesigned to Jonathan's direction (2026-09-17).
+* **One player per practice track.** A task lists its tracks; each opens its own player with only that track loaded.
+* **Icon transport side by side:** green Play (turns to Pause), red Record, black Stop (back to the start). Record plays the track from the start and records onto a new take track underneath (Take 1, Take 2…); press Record or Stop to finish.
+* **Controls on each track:** Mute, Solo, Volume and Pan, drawn on the track itself.
+* **Zoom:** zoom in, zoom out, and fit the whole piece.
+* **Timing correction** sits under the tracks, with the measured delay.
+* **Try again:** click a take to select it, then the trash button (or the Delete key) removes it; the download button saves the selected take as .wav.
 
 = 0.1.3 =
 * **Practice tracks load again.** The track links were written with `&amp;` inside the page's JSON, so the browser sent a scrambled request and the Hub answered 403 — no track loaded, on staging, on 2026-09-17. Fixed, and a track that fails to load is now named in the player.

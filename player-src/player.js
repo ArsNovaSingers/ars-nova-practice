@@ -1,29 +1,29 @@
 /**
- * Ars Nova practice player.
+ * Ars Nova practice player — one practice track per player.
  *
- * A small multitrack player for singers: every practice track attached to a
- * task plays in sync, and each one has its own Mute, Volume and Ear
- * (left / both / right) controls — the "backing track in both ears, my part in
- * my left ear" way of practising.
+ * Jonathan, 2026-09-17: each practice track gets its own player. The player
+ * opens with that one track loaded; pressing Record plays it from the start
+ * and records the singer onto a new take track underneath ("Take 1",
+ * "Take 2"…). Transport is three icon buttons side by side — green Play,
+ * red Record, black Stop. Mute / Solo / Volume / Pan sit on each track. A zoom
+ * tool, the timing correction under the tracks, and "select a take, delete it,
+ * try again".
  *
  * Built on @dawcore/components from waveform-playlist (MIT,
- * https://github.com/naomiaro/waveform-playlist). The library draws the
- * waveforms and does the audio; the big, touch-friendly controls are ours,
- * because a singer on an iPad needs buttons, not a studio mixer.
+ * https://github.com/naomiaro/waveform-playlist). The per-track controls are
+ * the library's own; the transport, zoom and take handling are ours.
  *
- * RECORDING (test feature). The browser records the MICROPHONE ONLY — never
- * what the page is playing — so with headphones on, the take is the singer's
- * voice alone. Each press of Record adds a new take track ("Take 1", "Take 2"…)
- * under the practice tracks, so the player always opens with just the music.
- * Takes stay in this browser tab (play back, download as .wav); nothing is
- * uploaded in this version.
+ * The browser records the MICROPHONE ONLY — never what the page is playing —
+ * so with headphones the take is the voice alone. Nothing is uploaded in this
+ * version: takes can be played back and downloaded as .wav.
  *
  * mountPlayer(host, opts) returns { destroy() }.
  *   opts.tracks     [{ title, src, part, pan: 'left'|'center'|'right', muted }]
- *   opts.recording  boolean — show the recording test panel
+ *                   (normally exactly one; more are allowed and play together)
+ *   opts.recording  boolean — offer the Record button
  *   opts.strings    UI text (all optional; English defaults below)
- *   opts.onListen   function(seconds) — called with listened time, in pieces
- *   opts.onError    function(message)
+ *   opts.onListen   function(seconds) — listened time, in pieces
+ *   opts.onError    function(message, detail)
  */
 import '@dawcore/components';
 import { NativePlayoutAdapter } from '@dawcore/transport';
@@ -33,37 +33,41 @@ const PAN = { left: -1, center: 0, right: 1 };
 const DEFAULT_STRINGS = {
 	play: 'Play',
 	pause: 'Pause',
-	restart: 'Back to start',
-	loading: 'Loading the tracks…',
-	ready: 'Ready',
-	loadFailed: 'A track could not be loaded. Try again, or open it from Program Materials.',
-	mute: 'Mute',
-	unmute: 'Unmute',
-	volume: 'Volume',
-	ear: 'Ear',
-	left: 'Left',
-	both: 'Both',
-	right: 'Right',
-	recTitle: 'Record a practice take (test)',
-	recHelp: 'Use WIRED headphones. The page records only your microphone, not the music, so your take is your voice alone. Bluetooth headphones (AirPods) add a delay and switch to a low-quality microphone.',
-	micOn: 'Turn on the microphone',
-	micDenied: 'The microphone could not be turned on. Check that this site is allowed to use it.',
-	micReady: 'Microphone on.',
-	latency: 'Measured delay: %s ms',
-	correction: 'Timing correction',
-	correctionHelp: 'If your take sounds late against the music, move this right and record again.',
 	record: 'Record',
 	stopRecord: 'Stop recording',
+	stop: 'Stop and go back to the start',
+	zoomIn: 'Zoom in',
+	zoomOut: 'Zoom out',
+	zoomFit: 'Fit the whole piece',
+	loading: 'Loading the track…',
+	ready: 'Ready',
+	loadFailed: 'The track could not be loaded. Try again, or open it from Program Materials.',
+	micAsk: 'Allow the microphone when your browser asks.',
+	micDenied: 'The microphone could not be turned on. Check that this site is allowed to use it.',
 	recording: 'Recording… sing along.',
-	takeDone: 'Take saved in this page. Press Back to start, then Play, to hear it with the music.',
+	takeDone: 'Take %s saved in this page. Press Play to hear it with the music.',
 	take: 'Take %s',
 	track: 'Track %s',
-	trackFailed: 'This track could not be loaded.',
-	takeOnly: 'Hear my take only',
-	withMusic: 'Hear it with the music',
-	download: 'Download my take (.wav)',
-	yourTake: 'Your take',
-	notSaved: 'Takes are not uploaded anywhere in this test. They disappear when you leave the page unless you download them.',
+	correction: 'Timing correction',
+	correctionHelp: 'If your takes sound late against the music, move this to the right before recording again.',
+	latency: 'measured delay %s ms',
+	deleteTake: 'Delete the selected take',
+	deleteHint: 'Click a take to select it, then delete it to try again.',
+	download: 'Download the selected take (.wav)',
+	headphones: 'Use WIRED headphones. Only your microphone is recorded, not the music. Bluetooth headphones add a delay.',
+	notSaved: 'Takes stay in this page and are not uploaded. Download one to keep it.',
+};
+
+const ICONS = {
+	play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>',
+	pause: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>',
+	record: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/></svg>',
+	stop: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>',
+	zoomIn: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 3a7 7 0 015.6 11.2l5.1 5.1-1.4 1.4-5.1-5.1A7 7 0 1110 3zm0 2a5 5 0 100 10 5 5 0 000-10zm-1 2h2v2h2v2h-2v2H9v-2H7V9h2z"/></svg>',
+	zoomOut: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 3a7 7 0 015.6 11.2l5.1 5.1-1.4 1.4-5.1-5.1A7 7 0 1110 3zm0 2a5 5 0 100 10 5 5 0 000-10zM7 9h6v2H7z"/></svg>',
+	fit: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h2v14H3zM19 5h2v14h-2zM7 11h10v2H7zm0 0l3-3v8zm10 0l-3-3v8z"/></svg>',
+	trash: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h4v2H4V5h4zm-3 6h12l-1 12H7z"/></svg>',
+	download: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3h2v9l3-3 1.4 1.4L12 15.8l-5.4-5.4L8 9l3 3zM4 18h16v2H4z"/></svg>',
 };
 
 let uid = 0;
@@ -74,13 +78,23 @@ function el(tag, attrs = {}, children = []) {
 		if (v === null || v === undefined || v === false) continue;
 		if (k === 'class') node.className = v;
 		else if (k === 'text') node.textContent = v;
-		else if (k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2), v);
+		else if (k === 'html') node.innerHTML = v;
 		else node.setAttribute(k, v === true ? '' : String(v));
 	}
 	for (const c of [].concat(children)) {
 		if (c) node.append(c);
 	}
 	return node;
+}
+
+function iconButton(kind, label, extra = '') {
+	return el('button', {
+		type: 'button',
+		class: 'anpr-icon anpr-icon--' + kind + (extra ? ' ' + extra : ''),
+		'aria-label': label,
+		title: label,
+		html: ICONS[kind],
+	});
 }
 
 function fmt(sec) {
@@ -121,156 +135,79 @@ export function mountPlayer(host, opts = {}) {
 	const tracks = Array.isArray(opts.tracks) ? opts.tracks : [];
 	const onListen = typeof opts.onListen === 'function' ? opts.onListen : () => {};
 	const onError = typeof opts.onError === 'function' ? opts.onError : () => {};
-	const editorId = 'anpr-daw-' + (++uid);
+	const canRecord = !!opts.recording && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 
 	const ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
 	const adapter = new NativePlayoutAdapter(ctx);
 
-	// ---------- layout ----------
-	const playBtn = el('button', { type: 'button', class: 'anpr-btn anpr-btn--primary anpr-play', disabled: true, text: S.play });
-	const restartBtn = el('button', { type: 'button', class: 'anpr-btn anpr-restart', disabled: true, text: S.restart });
-	const timeOut = el('span', { class: 'anpr-time', 'aria-live': 'off', text: '0:00 / 0:00' });
+	// ---------- transport row ----------
+	const playBtn = iconButton('play', S.play);
+	const recBtn = canRecord ? iconButton('record', S.record) : null;
+	const stopBtn = iconButton('stop', S.stop);
+	[playBtn, stopBtn].concat(recBtn ? [recBtn] : []).forEach((b) => { b.disabled = true; });
+	const timeOut = el('span', { class: 'anpr-time', text: '0:00 / 0:00' });
 	const status = el('span', { class: 'anpr-status', role: 'status', text: S.loading });
-	const bar = el('div', { class: 'anpr-player-bar' }, [playBtn, restartBtn, timeOut, status]);
 
+	const zoomOutBtn = iconButton('zoomOut', S.zoomOut, 'anpr-icon--small');
+	const zoomInBtn = iconButton('zoomIn', S.zoomIn, 'anpr-icon--small');
+	const fitBtn = iconButton('fit', S.zoomFit, 'anpr-icon--small');
+	const zoomGroup = el('span', { class: 'anpr-zoom', role: 'group', 'aria-label': 'Zoom' }, [zoomOutBtn, zoomInBtn, fitBtn]);
+
+	const transport = el('div', { class: 'anpr-transport', role: 'group', 'aria-label': 'Transport' },
+		[playBtn].concat(recBtn ? [recBtn] : []).concat([stopBtn]));
+	const bar = el('div', { class: 'anpr-player-bar' }, [transport, timeOut, status, zoomGroup]);
+
+	// ---------- tracks ----------
 	const editor = el('daw-editor', {
-		id: editorId,
+		id: 'anpr-daw-' + (++uid),
 		class: 'anpr-daw',
 		'samples-per-pixel': 8192,
-		'wave-height': 44,
+		'wave-height': 100,
 		timescale: true,
 		mono: true,
 		'eager-resume': true,
 	});
 	editor.adapter = adapter;
 
-	const mixer = el('ul', { class: 'anpr-mixer' });
-	const trackEls = [];
-	const rowsByTrack = new Map();
+	const practiceIds = new Set();
 	tracks.forEach((t, i) => {
 		const pan = PAN[t.pan] !== undefined ? t.pan : 'center';
-		const label = S.track.replace('%s', String(i + 1)) + ' · ' + (t.title || '');
-		const tEl = el('daw-track', { src: t.src, name: label, muted: !!t.muted });
+		const name = (tracks.length > 1 ? S.track.replace('%s', String(i + 1)) + ' · ' : '') + (t.title || '');
+		const tEl = el('daw-track', { src: t.src, name, muted: !!t.muted });
 		tEl.volume = 1;
 		tEl.pan = PAN[pan];
 		editor.append(tEl);
-		trackEls.push(tEl);
-		const row = mixerRow(tEl, Object.assign({}, t, { title: label }), pan);
-		rowsByTrack.set(tEl.trackId, row);
-		mixer.append(row);
+		practiceIds.add(tEl.trackId);
 	});
 
-	// Takes are added when the singer presses Record, never before.
-	let takeEl = null;
-	let takeCount = 0;
-
-	const wrap = el('div', { class: 'anpr-player' }, [bar, editor, mixer]);
-	let rec = null;
-	if (opts.recording) {
-		rec = recordingPanel();
-		wrap.append(rec.node);
-	}
-	host.replaceChildren(wrap);
-
-	function mixerRow(tEl, t, pan) {
-		const name = el('span', { class: 'anpr-mix-name', text: t.title || '' });
-		const part = t.part ? el('span', { class: 'anpr-mix-part', text: t.part }) : null;
-		const muteBtn = el('button', {
-			type: 'button',
-			class: 'anpr-btn anpr-mute',
-			'aria-pressed': t.muted ? 'true' : 'false',
-			text: t.muted ? S.unmute : S.mute,
-		});
-		const showMute = (on) => {
-			muteBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
-			muteBtn.textContent = on ? S.unmute : S.mute;
-		};
-		muteBtn.addEventListener('click', () => {
-			if (tEl.hasAttribute('muted')) tEl.removeAttribute('muted');
-			else tEl.setAttribute('muted', '');
-		});
-		// The waveform header has its own M button; keep ours in step with it.
-		new MutationObserver(() => showMute(tEl.hasAttribute('muted'))).observe(tEl, { attributes: true, attributeFilter: ['muted'] });
-		const vol = el('input', { type: 'range', min: 0, max: 100, step: 1, value: 100, 'aria-label': S.volume + ': ' + (t.title || '') });
-		vol.addEventListener('input', () => { tEl.volume = Number(vol.value) / 100; });
-		const ears = el('span', { class: 'anpr-ears', role: 'group', 'aria-label': S.ear });
-		for (const [key, label] of [['left', S.left], ['center', S.both], ['right', S.right]]) {
-			const b = el('button', { type: 'button', class: 'anpr-btn anpr-ear', 'aria-pressed': key === pan ? 'true' : 'false', 'data-ear': key, text: label });
-			b.addEventListener('click', () => {
-				tEl.pan = PAN[key];
-				ears.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
-			});
-			ears.append(b);
-		}
-		return el('li', { class: 'anpr-mix-row' }, [
-			el('div', { class: 'anpr-mix-label' }, [name, part]),
-			el('div', { class: 'anpr-mix-controls' }, [
-				muteBtn,
-				el('label', { class: 'anpr-vol' }, [el('span', { class: 'anpr-sr', text: S.volume }), vol]),
-				ears,
-			]),
+	// ---------- under the tracks: timing, takes ----------
+	let takeTools = null;
+	let corr = null;
+	let latencyOut = null;
+	let deleteBtn = null;
+	let dlLink = null;
+	if (canRecord) {
+		corr = el('input', { type: 'range', min: -300, max: 300, step: 10, value: 0, 'aria-describedby': '' });
+		const corrOut = el('output', { text: '0 ms' });
+		corr.addEventListener('input', () => { corrOut.textContent = corr.value + ' ms'; });
+		latencyOut = el('span', { class: 'anpr-latency' });
+		deleteBtn = iconButton('trash', S.deleteTake, 'anpr-icon--small');
+		deleteBtn.disabled = true;
+		dlLink = el('a', { class: 'anpr-icon anpr-icon--small anpr-icon--download', 'aria-label': S.download, title: S.download, html: ICONS.download, hidden: true });
+		takeTools = el('div', { class: 'anpr-under' }, [
+			el('label', { class: 'anpr-rec-corr' }, [el('span', { text: S.correction }), corr, corrOut, latencyOut]),
+			el('p', { class: 'anpr-rec-help', text: S.correctionHelp }),
+			el('div', { class: 'anpr-take-tools' }, [deleteBtn, dlLink, el('span', { class: 'anpr-rec-help', text: S.deleteHint })]),
+			el('p', { class: 'anpr-rec-help', text: S.headphones + ' ' + S.notSaved }),
 		]);
 	}
 
-	// ---------- listening time ----------
-	let playingSince = 0;
-	function flushListen() {
-		if (playingSince) {
-			const now = performance.now();
-			const secs = (now - playingSince) / 1000;
-			playingSince = now;
-			if (secs > 0.25) onListen(secs);
-		}
-	}
-	const tick = setInterval(() => { if (playingSince) flushListen(); }, 10000);
+	const wrap = el('div', { class: 'anpr-player' }, [bar, editor].concat(takeTools ? [takeTools] : []));
+	host.replaceChildren(wrap);
 
-	function setPlaying(on) {
-		playBtn.textContent = on ? S.pause : S.play;
-		playBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
-		if (on) {
-			if (!playingSince) playingSince = performance.now();
-		} else {
-			flushListen();
-			playingSince = 0;
-		}
-	}
-
-	editor.addEventListener('daw-play', () => setPlaying(true));
-	editor.addEventListener('daw-pause', () => setPlaying(false));
-	editor.addEventListener('daw-stop', () => setPlaying(false));
-	editor.addEventListener('daw-timeupdate', (e) => {
-		const t = e.detail && typeof e.detail.time === 'number' ? e.detail.time : editor.currentTime;
-		timeOut.textContent = fmt(t) + ' / ' + fmt(editor.duration);
-	});
-	const failed = (e) => {
-		status.textContent = S.loadFailed;
-		const id = e && e.detail && e.detail.trackId;
-		const row = id && rowsByTrack.get(id);
-		if (row && !row.querySelector('.anpr-mix-error')) {
-			row.classList.add('is-failed');
-			row.querySelector('.anpr-mix-label').append(el('span', { class: 'anpr-mix-error', text: S.trackFailed }));
-		}
-		onError(S.loadFailed, e && e.detail);
-	};
-	editor.addEventListener('daw-track-error', failed);
-	editor.addEventListener('daw-error', (e) => onError('player error', e && e.detail));
-
-	playBtn.addEventListener('click', async () => {
-		try { if (ctx.state !== 'running') await ctx.resume(); } catch (err) { /* ignore */ }
-		if (editor.isPlaying) editor.pause();
-		else editor.play();
-	});
-	restartBtn.addEventListener('click', () => {
-		const was = editor.isPlaying;
-		if (was) editor.stop();
-		editor.seekTo(0);
-		timeOut.textContent = fmt(0) + ' / ' + fmt(editor.duration);
-		if (was) editor.play(0);
-	});
-
-	// The library's own track header has a "remove track" button. Singers must
-	// not be able to delete a practice track from the page, so the request is
-	// swallowed before it reaches the editor and the button is hidden.
+	// Practice tracks must never be removable from the page; only our own
+	// Delete button removes takes. The library's × is hidden and its event
+	// swallowed before the editor sees it.
 	wrap.addEventListener('daw-track-remove', (e) => { e.stopPropagation(); }, true);
 	const HIDE_CSS = '.remove-btn{display:none !important}';
 	function hideRemoveButtons() {
@@ -285,155 +222,220 @@ export function mountPlayer(host, opts = {}) {
 			}
 		});
 	}
-	const hideTimer = setInterval(hideRemoveButtons, 500);
+	const hideTimer = setInterval(hideRemoveButtons, 400);
 
-	// Fit the whole piece to the width available, so a singer never has to
-	// scroll sideways to find the start or the end.
-	function fitToWidth() {
+	// ---------- zoom ----------
+	const MIN_SPP = 128;
+	function fitSpp() {
 		const d = editor.duration;
-		const w = editor.getBoundingClientRect().width - 130;
-		if (d > 0 && w > 100) {
-			const spp = Math.max(256, Math.ceil((d * ctx.sampleRate) / w));
-			editor.setAttribute('samples-per-pixel', String(spp));
-			return true;
+		const w = editor.getBoundingClientRect().width - 200;
+		return d > 0 && w > 100 ? Math.max(MIN_SPP, Math.ceil((d * ctx.sampleRate) / w)) : 8192;
+	}
+	function setSpp(v) {
+		const spp = Math.max(MIN_SPP, Math.min(fitSpp(), Math.round(v)));
+		editor.setAttribute('samples-per-pixel', String(spp));
+		zoomOutBtn.disabled = spp >= fitSpp();
+		zoomInBtn.disabled = spp <= MIN_SPP;
+	}
+	const currentSpp = () => Number(editor.getAttribute('samples-per-pixel')) || fitSpp();
+	zoomInBtn.addEventListener('click', () => setSpp(currentSpp() / 2));
+	zoomOutBtn.addEventListener('click', () => setSpp(currentSpp() * 2));
+	fitBtn.addEventListener('click', () => setSpp(fitSpp()));
+
+	// ---------- listening time ----------
+	let playingSince = 0;
+	function flushListen() {
+		if (playingSince) {
+			const now = performance.now();
+			const secs = (now - playingSince) / 1000;
+			playingSince = now;
+			if (secs > 0.25) onListen(secs);
 		}
-		return false;
+	}
+	const tick = setInterval(() => { if (playingSince) flushListen(); }, 10000);
+
+	function showPlaying(on) {
+		playBtn.innerHTML = on ? ICONS.pause : ICONS.play;
+		playBtn.setAttribute('aria-label', on ? S.pause : S.play);
+		playBtn.title = on ? S.pause : S.play;
+		playBtn.classList.toggle('is-on', on);
+		if (on) {
+			if (!playingSince) playingSince = performance.now();
+		} else {
+			flushListen();
+			playingSince = 0;
+		}
+	}
+	editor.addEventListener('daw-play', () => showPlaying(true));
+	editor.addEventListener('daw-pause', () => showPlaying(false));
+	editor.addEventListener('daw-stop', () => showPlaying(false));
+	editor.addEventListener('daw-timeupdate', (e) => {
+		const t = e.detail && typeof e.detail.time === 'number' ? e.detail.time : editor.currentTime;
+		timeOut.textContent = fmt(t) + ' / ' + fmt(editor.duration);
+	});
+	const failed = (e) => {
+		status.textContent = S.loadFailed;
+		status.classList.add('is-error');
+		onError(S.loadFailed, e && e.detail);
+	};
+	editor.addEventListener('daw-track-error', failed);
+	editor.addEventListener('daw-error', (e) => onError('player error', e && e.detail));
+
+	const resume = async () => { try { if (ctx.state !== 'running') await ctx.resume(); } catch (err) { /* ignore */ } };
+
+	playBtn.addEventListener('click', async () => {
+		await resume();
+		if (editor.isRecording) return;
+		if (editor.isPlaying) editor.pause();
+		else editor.play();
+	});
+	stopBtn.addEventListener('click', () => {
+		if (editor.isRecording) editor.stopRecording();
+		if (editor.isPlaying) editor.stop();
+		editor.seekTo(0);
+		timeOut.textContent = fmt(0) + ' / ' + fmt(editor.duration);
+	});
+
+	// ---------- recording ----------
+	let stream = null;
+	let measured = 0;
+	let takeCount = 0;
+	const takes = new Map(); // trackId -> { el, buffer, offset, n }
+	let selectedTake = null;
+	let onKey = null;
+
+	async function ensureMic() {
+		if (stream) return true;
+		status.textContent = S.micAsk;
+		try {
+			stream = await navigator.mediaDevices.getUserMedia({
+				audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: { ideal: 1 } },
+			});
+		} catch (err) {
+			status.textContent = S.micDenied;
+			status.classList.add('is-error');
+			onError(S.micDenied, err);
+			return false;
+		}
+		editor.recordingStream = stream;
+		const tr = stream.getAudioTracks()[0];
+		const settings = tr && tr.getSettings ? tr.getSettings() : {};
+		const input = typeof settings.latency === 'number' ? settings.latency : 0;
+		measured = (ctx.baseLatency || 0) + (ctx.outputLatency || 0) + input;
+		if (latencyOut) latencyOut.textContent = '(' + S.latency.replace('%s', String(Math.round(measured * 1000))) + ')';
+		return true;
 	}
 
-	let destroyed = false;
-	Promise.resolve(editor.ready ? editor.ready() : null).then(() => {
-		if (destroyed) return;
-		playBtn.disabled = false;
-		restartBtn.disabled = false;
-		if (status.textContent === S.loading) status.textContent = S.ready;
-		if (rec) rec.enable();
-		let tries = 0;
-		const waitDuration = () => {
-			if (destroyed) return;
-			if (editor.duration > 0) {
-				timeOut.textContent = fmt(editor.currentTime) + ' / ' + fmt(editor.duration);
-				fitToWidth();
-				hideRemoveButtons();
-			} else if (tries++ < 50) {
-				setTimeout(waitDuration, 100);
+	function selectTake(id) {
+		selectedTake = id && takes.has(id) ? id : null;
+		const t = selectedTake ? takes.get(selectedTake) : null;
+		if (deleteBtn) deleteBtn.disabled = !t;
+		if (dlLink) {
+			if (t && t.url) {
+				dlLink.href = t.url;
+				dlLink.download = 'practice-take-' + t.n + '.wav';
+				dlLink.hidden = false;
+			} else {
+				dlLink.hidden = true;
 			}
-		};
-		waitDuration();
-	}).catch(failed);
+		}
+	}
 
-	// ---------- recording test ----------
-	function recordingPanel() {
-		let stream = null;
-		let lastBuffer = null;
-		let lastOffset = 0;
-		let takeOnly = false;
-		const micBtn = el('button', { type: 'button', class: 'anpr-btn', disabled: true, text: S.micOn });
-		const recBtn = el('button', { type: 'button', class: 'anpr-btn anpr-btn--rec', disabled: true, text: S.record });
-		const recStatus = el('p', { class: 'anpr-rec-status', role: 'status' });
-		const latencyOut = el('span', { class: 'anpr-latency' });
-		const corr = el('input', { type: 'range', min: -300, max: 300, step: 10, value: 0 });
-		const corrOut = el('output', { text: '0 ms' });
-		corr.addEventListener('input', () => { corrOut.textContent = corr.value + ' ms'; });
-		const soloBtn = el('button', { type: 'button', class: 'anpr-btn', disabled: true, text: S.takeOnly });
-		const dl = el('a', { class: 'anpr-btn', hidden: true, download: 'practice-take.wav', text: S.download });
-		let measured = 0;
+	function deleteSelectedTake() {
+		const t = selectedTake && takes.get(selectedTake);
+		if (!t || editor.isRecording) return;
+		if (editor.isPlaying) editor.stop();
+		t.el.remove();
+		if (t.url) URL.revokeObjectURL(t.url);
+		takes.delete(selectedTake);
+		selectTake(null);
+		status.textContent = S.ready;
+	}
 
-		micBtn.addEventListener('click', async () => {
-			try {
-				stream = await navigator.mediaDevices.getUserMedia({
-					audio: {
-						echoCancellation: false,
-						noiseSuppression: false,
-						autoGainControl: false,
-						channelCount: { ideal: 1 },
-					},
-				});
-				editor.recordingStream = stream;
-				const trackSettings = stream.getAudioTracks()[0] && stream.getAudioTracks()[0].getSettings ? stream.getAudioTracks()[0].getSettings() : {};
-				const input = typeof trackSettings.latency === 'number' ? trackSettings.latency : 0;
-				measured = (ctx.baseLatency || 0) + (ctx.outputLatency || 0) + input;
-				latencyOut.textContent = S.latency.replace('%s', String(Math.round(measured * 1000)));
-				recStatus.textContent = S.micReady;
-				micBtn.disabled = true;
-				recBtn.disabled = false;
-			} catch (err) {
-				recStatus.textContent = S.micDenied;
-				onError(S.micDenied, err);
-			}
-		});
-
+	if (recBtn) {
 		recBtn.addEventListener('click', async () => {
-			if (!stream) return;
 			if (editor.isRecording) {
 				editor.stopRecording();
 				return;
 			}
-			try { if (ctx.state !== 'running') await ctx.resume(); } catch (err) { /* ignore */ }
-			// A fresh track for this take, added under the practice tracks.
-			if (takeOnly && takeEl) takeEl.removeAttribute('soloed');
+			await resume();
+			if (!(await ensureMic())) return;
+			if (editor.isPlaying) editor.stop();
 			takeCount += 1;
-			takeEl = el('daw-track', { name: S.take.replace('%s', String(takeCount)) });
+			const n = takeCount;
+			const takeEl = el('daw-track', { name: S.take.replace('%s', String(n)) });
 			editor.append(takeEl);
+			takes.set(takeEl.trackId, { el: takeEl, buffer: null, offset: 0, url: '', n });
 			await new Promise((r) => setTimeout(r, 60)); // let the editor register it
-			const trackId = takeEl.trackId;
-			const offset = Math.max(0, measured + Number(corr.value) / 1000);
+			editor.seekTo(0);
+			const offset = Math.max(0, measured + Number(corr ? corr.value : 0) / 1000);
 			await editor.startRecording(stream, {
-				trackId,
+				trackId: takeEl.trackId,
 				overdub: true,
 				latencyOffset: offset,
-				clipName: S.take.replace('%s', String(takeCount)),
+				clipName: S.take.replace('%s', String(n)),
 			});
 			if (editor.isRecording) {
-				recBtn.textContent = S.stopRecord;
-				recBtn.classList.add('is-recording');
-				recStatus.textContent = S.recording;
+				recBtn.classList.add('is-on');
+				recBtn.setAttribute('aria-label', S.stopRecord);
+				recBtn.title = S.stopRecord;
+				playBtn.disabled = true;
+				status.classList.remove('is-error');
+				status.textContent = S.recording;
 			}
 		});
 
 		editor.addEventListener('daw-recording-complete', (e) => {
-			recBtn.textContent = S.record;
-			recBtn.classList.remove('is-recording');
-			recStatus.textContent = S.takeDone;
-			lastBuffer = e.detail.audioBuffer;
-			lastOffset = e.detail.offsetSamples || 0;
-			if (dl.href) URL.revokeObjectURL(dl.href);
-			dl.href = URL.createObjectURL(toWav(lastBuffer, lastOffset));
-			dl.hidden = false;
-			soloBtn.disabled = false;
-			takeOnly = false;
-			soloBtn.textContent = S.takeOnly;
-			soloBtn.setAttribute('aria-pressed', 'false');
-			dl.download = 'practice-take-' + takeCount + '.wav';
+			recBtn.classList.remove('is-on');
+			recBtn.setAttribute('aria-label', S.record);
+			recBtn.title = S.record;
+			playBtn.disabled = false;
+			const t = takes.get(e.detail.trackId);
+			if (t) {
+				t.buffer = e.detail.audioBuffer;
+				t.offset = e.detail.offsetSamples || 0;
+				t.url = URL.createObjectURL(toWav(t.buffer, t.offset));
+				status.textContent = S.takeDone.replace('%s', String(t.n));
+				selectTake(e.detail.trackId);
+			}
+			if (editor.isPlaying) editor.stop();
+			editor.seekTo(0);
 		});
 
-		soloBtn.addEventListener('click', () => {
-			if (!takeEl) return;
-			takeOnly = !takeOnly;
-			if (takeOnly) takeEl.setAttribute('soloed', '');
-			else takeEl.removeAttribute('soloed');
-			soloBtn.textContent = takeOnly ? S.withMusic : S.takeOnly;
-			soloBtn.setAttribute('aria-pressed', takeOnly ? 'true' : 'false');
-		});
-
-		const node = el('section', { class: 'anpr-rec' }, [
-			el('h5', { class: 'anpr-rec-title', text: S.recTitle }),
-			el('p', { class: 'anpr-rec-help', text: S.recHelp }),
-			el('div', { class: 'anpr-rec-row' }, [micBtn, latencyOut]),
-			el('label', { class: 'anpr-rec-corr' }, [el('span', { text: S.correction }), corr, corrOut]),
-			el('p', { class: 'anpr-rec-help', text: S.correctionHelp }),
-			el('div', { class: 'anpr-rec-row' }, [recBtn, soloBtn, dl]),
-			recStatus,
-			el('p', { class: 'anpr-rec-help', text: S.notSaved }),
-		]);
-		return {
-			node,
-			enable() { micBtn.disabled = !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia); },
-			destroy() {
-				if (stream) stream.getTracks().forEach((t) => t.stop());
-				if (dl.href) URL.revokeObjectURL(dl.href);
-			},
+		editor.addEventListener('daw-track-select', (e) => selectTake(e.detail && e.detail.trackId));
+		deleteBtn.addEventListener('click', deleteSelectedTake);
+		// Clicking a lane does not move keyboard focus, so listen on the page.
+		// Only one player is open at a time, and only a selected TAKE is deleted.
+		onKey = (e) => {
+			if ((e.key === 'Delete' || e.key === 'Backspace') && selectedTake && !/INPUT|TEXTAREA|SELECT/.test((e.target && e.target.tagName) || '') && !(e.target && e.target.isContentEditable)) {
+				e.preventDefault();
+				deleteSelectedTake();
+			}
 		};
+		document.addEventListener('keydown', onKey);
 	}
+
+	// ---------- ready ----------
+	let destroyed = false;
+	Promise.resolve(editor.ready ? editor.ready() : null).then(() => {
+		if (destroyed) return;
+		let tries = 0;
+		const waitDuration = () => {
+			if (destroyed) return;
+			if (editor.duration > 0) {
+				[playBtn, stopBtn].concat(recBtn ? [recBtn] : []).forEach((b) => { b.disabled = false; });
+				if (status.textContent === S.loading) status.textContent = S.ready;
+				timeOut.textContent = fmt(editor.currentTime) + ' / ' + fmt(editor.duration);
+				setSpp(fitSpp());
+				hideRemoveButtons();
+			} else if (tries++ < 100) {
+				setTimeout(waitDuration, 100);
+			} else if (!status.classList.contains('is-error')) {
+				failed();
+			}
+		};
+		waitDuration();
+	}).catch(failed);
 
 	return {
 		destroy() {
@@ -444,7 +446,9 @@ export function mountPlayer(host, opts = {}) {
 			playingSince = 0;
 			clearInterval(tick);
 			clearInterval(hideTimer);
-			if (rec) rec.destroy();
+			if (onKey) document.removeEventListener('keydown', onKey);
+			if (stream) stream.getTracks().forEach((t) => t.stop());
+			takes.forEach((t) => { if (t.url) URL.revokeObjectURL(t.url); });
 			host.replaceChildren();
 			try { ctx.close(); } catch (err) { /* ignore */ }
 		},

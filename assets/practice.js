@@ -212,6 +212,7 @@
 		}
 		var d = ids( state.task );
 		d.event = 'listen';
+		d.material_id = state.material || '';
 		d.seconds = Math.round( state.pending );
 		state.pending = 0;
 		send( d, beacon ).catch( function () {} );
@@ -232,13 +233,14 @@
 		s.host.hidden = true;
 		s.host.replaceChildren();
 		s.button.setAttribute( 'aria-expanded', 'false' );
-		s.button.textContent = s.label;
+		s.button.classList.remove( 'is-open' );
 	}
 
 	function openPlayer( button ) {
 		var wrap = button.closest( '.anpr-practice' );
 		var task = button.closest( '[data-anpr-task]' );
-		var host = wrap.querySelector( '.anpr-player-host' );
+		var item = button.closest( '[data-anpr-track-index]' );
+		var host = item.querySelector( '.anpr-player-host' );
 		var json = wrap.querySelector( '[data-anpr-tracks]' );
 		var tracks = [];
 		try {
@@ -246,20 +248,24 @@
 		} catch ( err ) {
 			tracks = [];
 		}
+		var track = tracks[ Number( item.getAttribute( 'data-anpr-track-index' ) ) ];
+		if ( ! track ) {
+			return;
+		}
 		closePlayer( false );
-		var state = { task: task, host: host, button: button, label: button.textContent, ctrl: null, listened: 0, counted: false, pending: 0 };
+		var state = { task: task, host: host, button: button, material: track.id || '', ctrl: null, listened: 0, counted: false, pending: 0 };
 		open = state;
 		host.hidden = false;
 		host.textContent = ( T.player && T.player.loading ) || '…';
 		button.setAttribute( 'aria-expanded', 'true' );
-		button.textContent = T.close || 'Close';
+		button.classList.add( 'is-open' );
 
 		loadPlayer().then( function ( mod ) {
 			if ( open !== state ) {
 				return;
 			}
 			state.ctrl = mod.mountPlayer( host, {
-				tracks: tracks,
+				tracks: [ track ],
 				recording: !! C.recording,
 				strings: T.player || {},
 				onListen: function ( secs ) {
@@ -270,6 +276,7 @@
 						var d = ids( task );
 						d.event = 'play';
 						d.seconds = 0;
+						d.material_id = state.material;
 						send( d ).then( function ( r ) {
 							if ( r && typeof r.plays === 'number' ) {
 								setPlays( task, r.plays );
