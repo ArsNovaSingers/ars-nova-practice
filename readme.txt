@@ -4,7 +4,7 @@ Tags: choir, practice, assignments, rehearsal
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.3.3
+Stable tag: 0.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,7 +15,7 @@ Weekly practice assignments for the Ars Nova Singers Hub. Add-on for the Ars Nov
 **For singers** — "This Week's Assignments" on the Singers Hub becomes a week-by-week homework page:
 
 * This week's tasks first, with "have ready by" and the director's note; earlier and upcoming weeks folded away.
-* Each task: a Not done / Done switch, a Bad · Fair · Good · Great slider, the score/link buttons, and a **practice player**.
+* Each task: a Not done / Done switch, saved practice takes (see 0.4.0), a Bad · Fair · Good · Great slider, the score/link buttons, and a **practice player**.
 * Each practice track opens in its own player: green Play, red Record and black Stop side by side, Mute / Solo / Volume / Pan on the track, zoom, and takes recorded underneath that can be selected and deleted.
 * A task can carry one track per voice part; each singer gets their own part's track.
 * Optional **recording test**: record takes over the track with wired headphones (the page records the microphone only), hear them back, delete and retry, and download one. Nothing is uploaded in this version. Off / staff only / everyone, under Practice → Settings (default: staff only).
@@ -34,6 +34,15 @@ Drafts are shown to staff on the Hub page itself, so the Hub is the preview.
 The practice player is built on **@dawcore/components** from waveform-playlist by Naomi Aro (MIT License) — https://github.com/naomiaro/waveform-playlist. The built browser bundle is in `assets/player/`, with every bundled licence in `assets/player/THIRD-PARTY-LICENSES.txt` (MIT and BSD-3-Clause, plus waveform-data under LGPL-3.0). Its source, exact versions and build script are in the repository's `player-src/` folder, so the bundle can be rebuilt with any of those libraries replaced.
 
 == Changelog ==
+
+= 0.4.0 =
+Saved takes (Jonathan, 2026-09-17).
+* **New take** and **Save take** sit to the right of Record. New take clears Track 2 (it asks twice if the take is not saved).
+* **Save take** levels the voice (peaks at −1 dB, at most +30 dB of gain), mixes it with the practice track exactly as the dials are set (volume, pan, mute, solo, timing correction), and saves the stereo mixdown — MP3 160 kbps (encoded in the browser, off the main thread) or WAV, chosen in Practice → Settings.
+* **My saved takes** box: up to 5 takes per piece (setting), each with play, rename, download and delete; a small player with a seek bar. Playing a saved take pauses the music and the other way round. Delete asks twice.
+* **Storage:** takes go straight from the browser to a private Google Cloud bucket through short-lived signed URLs issued by the Singers Hub scores service (worker 0.8.0) — WordPress never carries the audio, and the site checks every request: who is asking, which concert, week, task and practice track, and the per-piece limit. Staging and LIVE use separate folders. Play and download links are made fresh on each click.
+* **Who can hear a take:** the singer, and Hub managers (Tom, Zahnay, site admins). Only the singer can rename or delete one. Nothing is deleted automatically.
+* New table `anpr_takes`; new POST-only routes `ars-nova-practice/v1/takes/{start,finish,rename,url,delete}` (no-store). Events `take`, `takeplay`, `takedel` are logged.
 
 = 0.3.3 =
 * The practice track buttons line up with the rest of the task again; the site theme had been indenting the list by 32 px.

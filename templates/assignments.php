@@ -234,8 +234,15 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 											?>
 										</span>
 									</div>
-									<div class="anpr-player-host" id="<?php echo esc_attr( $dom . '-player' ); ?>" hidden></div>
 									<script type="application/json" data-anpr-tracks><?php echo wp_json_encode( $mats['tracks'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES ); ?></script>
+									<?php
+									// Saved takes for the pieces these tracks belong to (0.4.0).
+									$task_takes = array();
+									foreach ( $mats['tracks'] as $track ) {
+										$task_takes[ $track['piece'] ] = isset( $block['takes'][ $track['piece'] ] ) ? $block['takes'][ $track['piece'] ] : array();
+									}
+									?>
+									<script type="application/json" data-anpr-takes><?php echo wp_json_encode( (object) $task_takes, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES ); ?></script>
 								</div>
 							<?php endif; ?>
 

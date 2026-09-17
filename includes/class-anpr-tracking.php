@@ -83,11 +83,7 @@ class ANPR_Tracking {
 	}
 
 	/**
-	 * Record one event.
-	 *
-	 * The ids in the request are never trusted: the project must be one the
-	 * viewer can see, the week must exist and be shown to them, and the task
-	 * must belong to that week.
+	 * Record one event. The ids are checked by resolve().
 	 *
 	 * @param WP_REST_Request $req Request.
 	 * @return WP_REST_Response|WP_Error
@@ -102,38 +98,12 @@ class ANPR_Tracking {
 		if ( ! in_array( $event, self::EVENTS, true ) ) {
 			return new WP_Error( 'anpr_bad_event', 'Unknown event.', array( 'status' => 400 ) );
 		}
-		$is_manager = ANSP_Permissions::is_manager( $user_id );
-		if ( ! $is_manager && ! user_can( $user_id, 'ansp_view_portal' ) ) {
-			return new WP_Error( 'anpr_forbidden', 'Not allowed.', array( 'status' => 403 ) );
+		$ctx = self::resolve( $user_id, $project_id, $week_id, $task_id );
+		if ( is_wp_error( $ctx ) ) {
+			return $ctx;
 		}
-		$project = get_post( $project_id );
-		if ( ! $project || ANSP_CPT::POST_TYPE !== $project->post_type || ! ANSP_Permissions::user_can_see( $project, $user_id ) ) {
-			return new WP_Error( 'anpr_forbidden', 'Not allowed.', array( 'status' => 403 ) );
-		}
-
-		$visible = ANPR_Weeks::visible( $project_id, $is_manager );
-		$week    = null;
-		foreach ( $visible['weeks'] as $w ) {
-			if ( $w['id'] === $week_id ) {
-				$week = $w;
-				break;
-			}
-		}
-		if ( null === $week ) {
-			return new WP_Error( 'anpr_not_found', 'No such week.', array( 'status' => 404 ) );
-		}
-		$task = null;
-		if ( '' !== $task_id ) {
-			foreach ( $week['tasks'] as $t ) {
-				if ( $t['id'] === $task_id ) {
-					$task = $t;
-					break;
-				}
-			}
-			if ( null === $task ) {
-				return new WP_Error( 'anpr_not_found', 'No such task.', array( 'status' => 404 ) );
-			}
-		} elseif ( 'view' !== $event ) {
+		$task = $ctx['task'];
+		if ( null === $task && 'view' !== $event ) {
 			return new WP_Error( 'anpr_bad_request', 'A task is required.', array( 'status' => 400 ) );
 		}
 
@@ -179,9 +149,63 @@ class ANPR_Tracking {
 	}
 
 	/**
+	 * Check a project / week / task triple against what this viewer may see.
+	 *
+	 * The ids in a request are never trusted: the project must be one the
+	 * viewer can see, the week must exist and be shown to them, and the task
+	 * (when given) must belong to that week. Shared by events and saved takes.
+	 *
+	 * @param int    $user_id    User.
+	 * @param int    $project_id Project.
+	 * @param string $week_id    Week.
+	 * @param string $task_id    Task, or ''.
+	 * @return array|WP_Error { project: WP_Post, week: array, task: array|null }
+	 */
+	public static function resolve( $user_id, $project_id, $week_id, $task_id ) {
+		$week_id    = sanitize_key( (string) $week_id );
+		$task_id    = sanitize_key( (string) $task_id );
+		$is_manager = ANSP_Permissions::is_manager( $user_id );
+		if ( ! $is_manager && ! user_can( $user_id, 'ansp_view_portal' ) ) {
+			return new WP_Error( 'anpr_forbidden', 'Not allowed.', array( 'status' => 403 ) );
+		}
+		$project = get_post( (int) $project_id );
+		if ( ! $project || ANSP_CPT::POST_TYPE !== $project->post_type || ! ANSP_Permissions::user_can_see( $project, $user_id ) ) {
+			return new WP_Error( 'anpr_forbidden', 'Not allowed.', array( 'status' => 403 ) );
+		}
+		$visible = ANPR_Weeks::visible( $project->ID, $is_manager );
+		$week    = null;
+		foreach ( $visible['weeks'] as $w ) {
+			if ( $w['id'] === $week_id ) {
+				$week = $w;
+				break;
+			}
+		}
+		if ( null === $week ) {
+			return new WP_Error( 'anpr_not_found', 'No such week.', array( 'status' => 404 ) );
+		}
+		$task = null;
+		if ( '' !== $task_id ) {
+			foreach ( $week['tasks'] as $t ) {
+				if ( $t['id'] === $task_id ) {
+					$task = $t;
+					break;
+				}
+			}
+			if ( null === $task ) {
+				return new WP_Error( 'anpr_not_found', 'No such task.', array( 'status' => 404 ) );
+			}
+		}
+		return array(
+			'project' => $project,
+			'week'    => $week,
+			'task'    => $task,
+		);
+	}
+
+	/**
 	 * Append to the event log.
 	 */
-	protected static function log( $user_id, $project_id, $week_id, $task_id, $material_id, $event, $seconds, $value ) {
+	public static function log( $user_id, $project_id, $week_id, $task_id, $material_id, $event, $seconds, $value = null ) {
 		global $wpdb;
 		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 			ANPR_Schema::events_table(),

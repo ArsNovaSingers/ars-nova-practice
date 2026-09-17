@@ -32,6 +32,21 @@ await build({
   logLevel: 'info',
 });
 
+// The MP3 encoder for saved takes runs in its own worker (0.4.0). It is a
+// classic script so the player can start it from a blob URL, which works even
+// when the plugin's assets are served from a CDN host.
+await build({
+  entryPoints: { 'mp3-worker': join(here, 'mp3-worker.js') },
+  bundle: true,
+  format: 'iife',
+  minify: true,
+  target: ['safari15', 'chrome100', 'firefox100'],
+  outdir: out,
+  legalComments: 'linked',
+  logLevel: 'info',
+});
+cpSync(join(here, 'node_modules', 'wasm-media-encoders', 'wasm', 'mp3.wasm'), join(out, 'mp3.wasm'));
+
 const wsrc = join(here, 'node_modules', '@waveform-playlist', 'worklets', 'dist', 'worklet');
 mkdirSync(join(out, 'worklet'), { recursive: true });
 for (const f of readdirSync(wsrc)) {
@@ -60,4 +75,9 @@ for (const p of pkgs.sort()) {
   if (lic && existsSync(join(dir, lic))) text += readFileSync(join(dir, lic), 'utf8').trim() + '\n\n';
   else text += '(no licence file in the package)\n\n';
 }
+text += '==== LAME MP3 encoder (inside mp3.wasm, built by wasm-media-encoders) — LGPL ====\n'
+  + 'mp3.wasm contains the LAME MP3 encoder (https://lame.sourceforge.io/), licensed under the GNU\n'
+  + 'Lesser General Public License. Its source is available from the LAME project and from\n'
+  + 'https://github.com/arseneyr/wasm-media-encoders, which builds this binary. The file is loaded\n'
+  + 'at run time as a separate module and can be replaced with any compatible build.\n\n';
 writeFileSync(join(out, 'THIRD-PARTY-LICENSES.txt'), text);

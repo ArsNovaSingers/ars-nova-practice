@@ -558,13 +558,39 @@ class ANPR_Admin {
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="anpr_save_settings">
 				<?php wp_nonce_field( 'anpr_save_settings', 'anpr_nonce' ); ?>
-				<h2><?php esc_html_e( 'Practice-take recording (test)', 'ars-nova-practice' ); ?></h2>
-				<p class="description"><?php esc_html_e( 'Adds a "Record a practice take" panel to the practice player. In this version takes stay in the singer\'s browser: they can play them back and download them, and nothing is uploaded or stored.', 'ars-nova-practice' ); ?></p>
+				<h2><?php esc_html_e( 'Recording and saved takes', 'ars-nova-practice' ); ?></h2>
+				<p class="description"><?php esc_html_e( 'Who sees Track 2 ("My take"), the Record button and Save take in the practice player. A saved take is the singer\'s voice (levelled) mixed with the practice track, stored privately in Google Cloud. The singer, Tom, Zahnay and site admins can listen to it; only the singer can rename or delete it. Nothing is deleted automatically.', 'ars-nova-practice' ); ?></p>
 				<fieldset>
 					<label><input type="radio" name="anpr_recording_test" value="off" <?php checked( 'off', $mode ); ?>> <?php esc_html_e( 'Off', 'ars-nova-practice' ); ?></label><br>
 					<label><input type="radio" name="anpr_recording_test" value="managers" <?php checked( 'managers', $mode ); ?>> <?php esc_html_e( 'Staff only (Tom, Zahnay, admins) — for testing', 'ars-nova-practice' ); ?></label><br>
 					<label><input type="radio" name="anpr_recording_test" value="everyone" <?php checked( 'everyone', $mode ); ?>> <?php esc_html_e( 'Everyone', 'ars-nova-practice' ); ?></label>
 				</fieldset>
+				<table class="form-table" role="presentation">
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Saved take format', 'ars-nova-practice' ); ?></th>
+						<td>
+							<label><input type="radio" name="anpr_take_format" value="mp3" <?php checked( 'mp3', ANPR_Takes::format() ); ?>> <?php esc_html_e( 'MP3, 160 kbps stereo (about 1.2 MB a minute) — recommended', 'ars-nova-practice' ); ?></label><br>
+							<label><input type="radio" name="anpr_take_format" value="wav" <?php checked( 'wav', ANPR_Takes::format() ); ?>> <?php esc_html_e( 'WAV, uncompressed (about 10 MB a minute)', 'ars-nova-practice' ); ?></label>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="anpr_takes_per_piece"><?php esc_html_e( 'Saved takes per piece', 'ars-nova-practice' ); ?></label></th>
+						<td><input type="number" min="1" max="20" id="anpr_takes_per_piece" name="anpr_takes_per_piece" value="<?php echo esc_attr( (string) ANPR_Takes::limit() ); ?>" class="small-text"></td>
+					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Storage', 'ars-nova-practice' ); ?></th>
+						<td>
+							<?php if ( ANPR_Takes::available() ) : ?>
+								<?php
+								/* translators: %s: staging or live */
+								echo esc_html( sprintf( __( 'Connected through the Singers Hub scores service. Takes from this site go in the "%s" folder.', 'ars-nova-practice' ), ANPR_Takes::env() ) );
+								?>
+							<?php else : ?>
+								<strong><?php esc_html_e( 'Not connected: the Singers Hub scores service is not set up, so takes cannot be saved.', 'ars-nova-practice' ); ?></strong>
+							<?php endif; ?>
+						</td>
+					</tr>
+				</table>
 				<?php submit_button( __( 'Save settings', 'ars-nova-practice' ) ); ?>
 			</form>
 		</div>
@@ -584,6 +610,10 @@ class ANPR_Admin {
 			$mode = 'managers';
 		}
 		update_option( 'anpr_recording_test', $mode, false );
+		$format = isset( $_POST['anpr_take_format'] ) ? sanitize_key( wp_unslash( $_POST['anpr_take_format'] ) ) : 'mp3';
+		update_option( 'anpr_take_format', in_array( $format, array( 'mp3', 'wav' ), true ) ? $format : 'mp3', false );
+		$limit = isset( $_POST['anpr_takes_per_piece'] ) ? (int) $_POST['anpr_takes_per_piece'] : ANPR_Takes::DEFAULT_LIMIT;
+		update_option( 'anpr_takes_per_piece', max( 1, min( 20, $limit ) ), false );
 		wp_safe_redirect( admin_url( 'admin.php?page=' . self::SETTINGS . '&anpr_msg=settings' ) );
 		exit;
 	}

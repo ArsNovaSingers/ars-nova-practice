@@ -8,7 +8,10 @@
  *
  *  - anpr_progress: one row per singer per task — done, and the latest rating.
  *  - anpr_events:   an append-only log — page views, score opens, plays,
- *                   listening time, done/undone, every rating change.
+ *                   listening time, done/undone, every rating change, and
+ *                   saved-take activity (take / takeplay / takedel).
+ *  - anpr_takes:    saved practice takes (0.4.0). The audio itself is in the
+ *                   private Google Cloud bucket; this row says whose it is.
  *
  * @package ArsNovaPractice
  */
@@ -22,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class ANPR_Schema {
 
-	const DB_VERSION = '1';
+	const DB_VERSION = '2'; // 2: anpr_takes (0.4.0).
 	const OPTION     = 'anpr_db_version';
 
 	/**
@@ -87,6 +90,33 @@ class ANPR_Schema {
 			KEY user_task (user_id,task_id),
 			KEY project_week (project_id,week_id),
 			KEY created_at (created_at)
+			) {$charset};"
+		);
+
+		$takes = ANPR_Takes::table();
+		dbDelta(
+			"CREATE TABLE {$takes} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			uuid varchar(40) NOT NULL,
+			user_id bigint(20) unsigned NOT NULL,
+			project_id bigint(20) unsigned NOT NULL,
+			week_id varchar(32) NOT NULL DEFAULT '',
+			task_id varchar(32) NOT NULL DEFAULT '',
+			material_id varchar(64) NOT NULL DEFAULT '',
+			piece_key varchar(64) NOT NULL,
+			track_title varchar(191) NOT NULL DEFAULT '',
+			name varchar(100) NOT NULL DEFAULT '',
+			object_path varchar(191) NOT NULL,
+			format varchar(8) NOT NULL DEFAULT 'mp3',
+			bytes bigint(20) unsigned NOT NULL DEFAULT 0,
+			seconds int(10) unsigned NOT NULL DEFAULT 0,
+			status varchar(12) NOT NULL DEFAULT 'pending',
+			created_at datetime NOT NULL,
+			updated_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY uuid (uuid),
+			KEY user_piece (user_id,project_id,piece_key),
+			KEY project_id (project_id)
 			) {$charset};"
 		);
 

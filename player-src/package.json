@@ -10,7 +10,8 @@
     "@dawcore/transport": "0.0.14",
     "@waveform-playlist/core": "12.6.1",
     "@waveform-playlist/engine": "13.6.0",
-    "@waveform-playlist/worklets": "13.0.0"
+    "@waveform-playlist/worklets": "13.0.0",
+    "wasm-media-encoders": "0.7.0"
   },
   "devDependencies": {
     "esbuild": "0.28.2"

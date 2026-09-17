@@ -13,6 +13,7 @@
 
 	var C = window.ANPR || {};
 	var T = C.i18n || {};
+	var TK = C.takes || {};
 	var PLAY_AFTER = Number( C.playAfter || 20 );
 
 	function send( data, useBeacon ) {
@@ -236,6 +237,38 @@
 		s.button.classList.remove( 'is-open' );
 	}
 
+	// ---------- saved takes (0.4.0) ----------
+	function takeCall( action, data ) {
+		return fetch( TK.rest + action, {
+			method: 'POST',
+			credentials: 'same-origin',
+			headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': C.nonce },
+			body: JSON.stringify( data ),
+		} ).then( function ( r ) {
+			return r.json().catch( function () { return {}; } ).then( function ( j ) {
+				if ( ! r.ok || ! j || ( j.code && ! j.ok ) ) {
+					throw new Error( ( j && j.message ) || ( 'HTTP ' + r.status ) );
+				}
+				return j;
+			} );
+		} );
+	}
+
+	/** The saved takes of a practice block, parsed once and shared by its players. */
+	function takesFor( wrap ) {
+		if ( ! wrap._anprTakes ) {
+			var node = wrap.querySelector( '[data-anpr-takes]' );
+			var parsed = {};
+			try {
+				parsed = JSON.parse( ( node && node.textContent ) || '{}' ) || {};
+			} catch ( err ) {
+				parsed = {};
+			}
+			wrap._anprTakes = parsed;
+		}
+		return wrap._anprTakes;
+	}
+
 	function openPlayer( button ) {
 		var wrap = button.closest( '.anpr-practice' );
 		var task = button.closest( '[data-anpr-task]' );
@@ -264,8 +297,31 @@
 			if ( open !== state ) {
 				return;
 			}
+			var pieces = takesFor( wrap );
+			var piece = track.piece || ( 'm-' + track.id );
+			if ( ! Array.isArray( pieces[ piece ] ) ) {
+				pieces[ piece ] = [];
+			}
+			var base = ids( task );
+			var takes = TK.rest ? {
+				canSave: !! TK.save,
+				limit: TK.limit,
+				format: TK.format,
+				pieceLabel: track.piece_label || track.title,
+				list: pieces[ piece ],
+				api: {
+					start: function ( o ) {
+						return takeCall( 'start', Object.assign( {}, base, { material_id: track.id }, o || {} ) );
+					},
+					finish: function ( id ) { return takeCall( 'finish', { take: id } ); },
+					rename: function ( id, name ) { return takeCall( 'rename', { take: id, name: name } ); },
+					url: function ( id, dl ) { return takeCall( 'url', { take: id, download: dl ? 1 : 0 } ); },
+					remove: function ( id ) { return takeCall( 'delete', { take: id } ); },
+				},
+			} : null;
 			state.ctrl = mod.mountPlayer( host, {
 				tracks: [ track ],
+				takes: takes,
 				recording: !! C.recording,
 				strings: T.player || {},
 				onListen: function ( secs ) {

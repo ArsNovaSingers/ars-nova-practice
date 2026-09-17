@@ -64,6 +64,12 @@ class ANPR_Frontend {
 				'playerUrl' => ANPR_URL . 'assets/player/player.js?ver=' . rawurlencode( ANPR_VERSION ),
 				'recording' => ( 'everyone' === $mode || ( 'managers' === $mode && $is_manager ) ) ? 1 : 0,
 				'playAfter' => 20,
+				'takes'     => array(
+					'rest'   => esc_url_raw( rest_url( ANPR_Tracking::NS . '/takes/' ) ),
+					'save'   => ANPR_Takes::can_save( $user_id ) ? 1 : 0,
+					'format' => ANPR_Takes::format(),
+					'limit'  => ANPR_Takes::limit(),
+				),
 				'ratings'   => ANPR_Tracking::rating_labels(),
 				'i18n'      => array(
 					'notRated'   => __( 'Not rated yet', 'ars-nova-practice' ),
@@ -104,9 +110,52 @@ class ANPR_Frontend {
 						'latency'        => __( 'measured delay %s ms', 'ars-nova-practice' ),
 						'deleteTake'     => __( 'Clear my take', 'ars-nova-practice' ),
 						'deleteHint'     => __( 'To try again, click your take and press Delete, or use the bin. Recording again also replaces it.', 'ars-nova-practice' ),
-						'download'       => __( 'Download my take (.wav)', 'ars-nova-practice' ),
+						'download'       => __( 'Download this unsaved take (.wav)', 'ars-nova-practice' ),
 						'headphones'     => __( 'Use WIRED headphones. Only your microphone is recorded, not the music. Bluetooth headphones add a delay.', 'ars-nova-practice' ),
-						'notSaved'       => __( 'Your take stays in this page and is not uploaded. Download it to keep it.', 'ars-nova-practice' ),
+						'notSaved'       => __( 'Your take stays in this page until you press Save take.', 'ars-nova-practice' ),
+						'newTake'        => __( 'New take', 'ars-nova-practice' ),
+						'newTakeHelp'    => __( 'Clear Track 2 and start a new take', 'ars-nova-practice' ),
+						'newTakeConfirm' => __( 'This take is not saved. Press New take again to discard it.', 'ars-nova-practice' ),
+						'newTakeReady'   => __( 'Ready for a new take. Press Record.', 'ars-nova-practice' ),
+						'saveTake'       => __( 'Save take', 'ars-nova-practice' ),
+						'saveTakeHelp'   => __( 'Mix your take with the music and save it', 'ars-nova-practice' ),
+						'saved'          => __( 'Saved', 'ars-nova-practice' ),
+						/* translators: %s: take name */
+						'savedAs'        => __( 'Saved as "%s".', 'ars-nova-practice' ),
+						'nothingToSave'  => __( 'Record a take first, then press Save take.', 'ars-nova-practice' ),
+						'mixing'         => __( 'Mixing your take with the music…', 'ars-nova-practice' ),
+						'converting'     => __( 'Converting…', 'ars-nova-practice' ),
+						'uploading'      => __( 'Uploading…', 'ars-nova-practice' ),
+						/* translators: %s: error */
+						'saveFailed'     => __( 'The take could not be saved: %s', 'ars-nova-practice' ),
+						/* translators: %s: number */
+						'limitReached'   => __( 'You have %s saved takes for this piece. Delete one to save another.', 'ars-nova-practice' ),
+						'allMuted'       => __( 'Both tracks are muted, so there is nothing to save. Unmute one first.', 'ars-nova-practice' ),
+						'takeSilent'     => __( 'Your take is silent. Check the microphone and record again.', 'ars-nova-practice' ),
+						'tooBig'         => __( 'This take is too long to save.', 'ars-nova-practice' ),
+						'takesTitle'     => __( 'My saved takes', 'ars-nova-practice' ),
+						/* translators: 1: saved takes, 2: limit */
+						'takesCount'     => __( '%1$s of %2$s', 'ars-nova-practice' ),
+						'takesEmpty'     => __( 'No saved takes yet. Record, then press Save take.', 'ars-nova-practice' ),
+						/* translators: %s: take name */
+						'playTake'       => __( 'Play %s', 'ars-nova-practice' ),
+						/* translators: %s: take name */
+						'pauseTake'      => __( 'Pause %s', 'ars-nova-practice' ),
+						/* translators: %s: take name */
+						'renameTake'     => __( 'Rename %s', 'ars-nova-practice' ),
+						/* translators: %s: take name */
+						'downloadTake'   => __( 'Download %s', 'ars-nova-practice' ),
+						/* translators: %s: take name */
+						'deleteSaved'    => __( 'Delete %s', 'ars-nova-practice' ),
+						/* translators: %s: take name */
+						'deleteConfirm'  => __( 'Press again to delete %s', 'ars-nova-practice' ),
+						'deleted'        => __( 'Take deleted.', 'ars-nova-practice' ),
+						'renamed'        => __( 'Renamed.', 'ars-nova-practice' ),
+						'takeName'       => __( 'Take name', 'ars-nova-practice' ),
+						'takePlayer'     => __( 'Saved take player', 'ars-nova-practice' ),
+						/* translators: %s: error */
+						'takeLoadFailed' => __( 'That take could not be played: %s', 'ars-nova-practice' ),
+						'noTakeSelected' => __( 'Choose a take to play', 'ars-nova-practice' ),
 					),
 				),
 			)
@@ -178,6 +227,7 @@ class ANPR_Frontend {
 					'weeks'     => $vis['weeks'],
 					'current'   => $vis['current'],
 					'progress'  => ANPR_Tracking::progress_for_user( $user_id, $project->ID ),
+					'takes'     => ANPR_Takes::for_user( $user_id, $project->ID ),
 					'plays'     => ANPR_Tracking::play_counts_for_user( $user_id, $project->ID ),
 					'materials' => ANPR_Weeks::materials_by_id( $project->ID, $user_id ),
 				);
@@ -217,17 +267,20 @@ class ANPR_Frontend {
 				if ( '' !== $m['part'] && ! $is_manager && ! empty( $parts ) && ! in_array( $m['part'], $parts, true ) ) {
 					continue; // Another voice part's track.
 				}
+				$piece    = ANPR_Takes::piece_of( $row );
 				$tracks[] = array(
-					'id'    => $rid,
-					'title' => $title,
+					'id'          => $rid,
+					'title'       => $title,
+					'piece'       => $piece['key'],
+					'piece_label' => $piece['label'],
 					// wp_nonce_url() returns an HTML-escaped URL (&amp;). This one goes
 					// into JSON for JavaScript, which needs plain &, or every parameter
 					// after the first is misread and the Hub answers 403. Staging
 					// 2026-09-17: no practice track loaded at all.
 					'src'   => str_replace( '&amp;', '&', ANSP_Player::play_url( $project_id, (string) $row['id'] ) ),
-					'part'  => $m['part'],
-					'pan'   => $m['pan'],
-					'muted' => (bool) $m['muted'],
+					'part'        => $m['part'],
+					'pan'         => $m['pan'],
+					'muted'       => (bool) $m['muted'],
 				);
 			} else {
 				$url = isset( $row['url'] ) ? (string) $row['url'] : '';
