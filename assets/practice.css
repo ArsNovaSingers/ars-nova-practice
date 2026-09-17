@@ -316,7 +316,7 @@
 .anpr-btn--rec.is-recording { background: #a4231b; border-color: #a4231b; color: #fff !important; }
 
 /* ---------- one player per track ---------- */
-.anpr-track-list { list-style: none; margin: 0; padding: 0; }
+.anpr-page .anpr-track-list { list-style: none; margin: 0 !important; padding: 0 !important; } /* the site theme pads lists */
 .anpr-track-item + .anpr-track-item { margin-top: 0.5rem; }
 .anpr-track-open { gap: 0.6rem; width: 100%; justify-content: flex-start; text-align: left; }
 .anpr-track-open.is-open { border-color: var(--anpr-accent); background: var(--anpr-soft); }

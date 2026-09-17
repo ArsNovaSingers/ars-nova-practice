@@ -4,7 +4,7 @@ Tags: choir, practice, assignments, rehearsal
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.3.2
+Stable tag: 0.3.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,6 +34,9 @@ Drafts are shown to staff on the Hub page itself, so the Hub is the preview.
 The practice player is built on **@dawcore/components** from waveform-playlist by Naomi Aro (MIT License) — https://github.com/naomiaro/waveform-playlist. The built browser bundle is in `assets/player/`, with every bundled licence in `assets/player/THIRD-PARTY-LICENSES.txt` (MIT and BSD-3-Clause, plus waveform-data under LGPL-3.0). Its source, exact versions and build script are in the repository's `player-src/` folder, so the bundle can be rebuilt with any of those libraries replaced.
 
 == Changelog ==
+
+= 0.3.3 =
+* The practice track buttons line up with the rest of the task again; the site theme had been indenting the list by 32 px.
 
 = 0.3.2 =
 * **Done is now a switch, not a bare checkbox** (Jonathan, 2026-09-17: it was not clear what the boxes were for). Each task shows a red "Not done" switch at the right of its title; tapping it turns it green with "✓ Done". The page intro and the Progress report say "marked done" instead of "ticked".
