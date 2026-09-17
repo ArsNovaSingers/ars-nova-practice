@@ -557,7 +557,9 @@ class ANPR_Takes {
 	}
 
 	/**
-	 * "Balada de la placeta – take 3" (the next unused number for the piece).
+	 * "Take 3" — the next number for this piece. The takes box already shows
+	 * the piece, and each row shows the practice track and the date, so the
+	 * name stays short (piece labels in the Hub can run to a full citation).
 	 *
 	 * @param int   $user_id    User.
 	 * @param int   $project_id Project.
@@ -567,9 +569,13 @@ class ANPR_Takes {
 	protected static function default_name( $user_id, $project_id, $track ) {
 		global $wpdb;
 		$table = self::table();
-		$n     = 1 + (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND project_id = %d AND piece_key = %s", $user_id, $project_id, $track['piece'] ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$base  = '' !== $track['piece_label'] ? $track['piece_label'] : $track['title'];
-		/* translators: 1: piece, 2: number */
-		return self::clean_name( sprintf( __( '%1$s – take %2$d', 'ars-nova-practice' ), mb_substr( $base, 0, 44 ), $n ) );
+		$names = $wpdb->get_col( $wpdb->prepare( "SELECT name FROM {$table} WHERE user_id = %d AND project_id = %d AND piece_key = %s", $user_id, $project_id, $track['piece'] ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$n     = count( $names ) + 1;
+		/* translators: %d: take number */
+		$format = __( 'Take %d', 'ars-nova-practice' );
+		while ( in_array( sprintf( $format, $n ), $names, true ) ) {
+			++$n;
+		}
+		return sprintf( $format, $n );
 	}
 }

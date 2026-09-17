@@ -1243,10 +1243,17 @@ export function mountPlayer(host, opts = {}) {
 				blob = await encodeMp3(mix, (f) => show(S.converting + ' ' + Math.round(f * 100) + '%', f));
 			}
 			const started = await T.api.start({ seconds: Math.round(mix.duration) });
-			if (started.upload.max_bytes && blob.size > started.upload.max_bytes) throw new Error(S.tooBig);
-			show(S.uploading, 0);
-			await putFile(started.upload, blob, (f) => show(S.uploading + ' ' + Math.round(f * 100) + '%', f));
-			const fin = await T.api.finish(started.take);
+			let fin;
+			try {
+				if (started.upload.max_bytes && blob.size > started.upload.max_bytes) throw new Error(S.tooBig);
+				show(S.uploading, 0);
+				await putFile(started.upload, blob, (f) => show(S.uploading + ' ' + Math.round(f * 100) + '%', f));
+				fin = await T.api.finish(started.take);
+			} catch (err) {
+				// Give the slot back: a half-started take must not count against the limit.
+				try { await T.api.remove(started.take); } catch (e2) { /* the server sweeps it later */ }
+				throw err;
+			}
 			takeList.push(fin.take);
 			take.savedId = fin.take.id;
 			takesBox.render();
