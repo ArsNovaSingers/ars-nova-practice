@@ -227,6 +227,7 @@ class ANPR_Frontend {
 					'weeks'     => $vis['weeks'],
 					'current'   => $vis['current'],
 					'progress'  => ANPR_Tracking::progress_for_user( $user_id, $project->ID ),
+					'seconds'   => ANPR_Tracking::seconds_for_user( $user_id, $project->ID ),
 					'takes'     => ANPR_Takes::for_user( $user_id, $project->ID ),
 					'plays'     => ANPR_Tracking::play_counts_for_user( $user_id, $project->ID ),
 					'materials' => ANPR_Weeks::materials_by_id( $project->ID, $user_id ),
@@ -299,6 +300,67 @@ class ANPR_Frontend {
 			'links'  => $links,
 			'tracks' => $tracks,
 		);
+	}
+
+	/**
+	 * "18 min" / "45 sec" for a number of seconds (0.5.0).
+	 *
+	 * @param int $seconds Seconds.
+	 * @return string
+	 */
+	public static function minutes_label( $seconds ) {
+		$seconds = max( 0, (int) $seconds );
+		if ( $seconds < 60 ) {
+			/* translators: %d: seconds */
+			return sprintf( __( '%d sec', 'ars-nova-practice' ), $seconds );
+		}
+		$mins = (int) round( $seconds / 60 );
+		if ( $mins < 60 ) {
+			/* translators: %d: minutes */
+			return sprintf( __( '%d min', 'ars-nova-practice' ), $mins );
+		}
+		$h = intdiv( $mins, 60 );
+		$m = $mins % 60;
+		/* translators: 1: hours, 2: minutes */
+		return $m ? sprintf( __( '%1\$dh %2\$dm', 'ars-nova-practice' ), $h, $m ) : sprintf( __( '%dh', 'ars-nova-practice' ), $h );
+	}
+
+	/**
+	 * A week's or task's video as something the page can show (0.5.0).
+	 *
+	 * Tom pastes a normal YouTube or Vimeo link; the page embeds it without
+	 * cookies. Anything else is offered as a plain link rather than an iframe.
+	 *
+	 * @param string $url Video URL.
+	 * @return array { embed, url, host } embed is '' when it cannot be embedded.
+	 */
+	public static function video_embed( $url ) {
+		$url = (string) $url;
+		if ( '' === $url ) {
+			return array( 'embed' => '', 'url' => '', 'host' => '' );
+		}
+		$host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
+		$out  = array( 'embed' => '', 'url' => $url, 'host' => $host );
+		$id   = '';
+		if ( false !== strpos( $host, 'youtu.be' ) ) {
+			$id = trim( (string) wp_parse_url( $url, PHP_URL_PATH ), '/' );
+		} elseif ( false !== strpos( $host, 'youtube.com' ) ) {
+			$q = array();
+			parse_str( (string) wp_parse_url( $url, PHP_URL_QUERY ), $q );
+			$id   = isset( $q['v'] ) ? (string) $q['v'] : '';
+			$path = (string) wp_parse_url( $url, PHP_URL_PATH );
+			if ( '' === $id && preg_match( '#/(embed|shorts|live)/([A-Za-z0-9_-]+)#', $path, $m ) ) {
+				$id = $m[2];
+			}
+		}
+		if ( '' !== $id && preg_match( '/^[A-Za-z0-9_-]{6,20}$/', $id ) ) {
+			$out['embed'] = 'https://www.youtube-nocookie.com/embed/' . $id . '?rel=0';
+			return $out;
+		}
+		if ( false !== strpos( $host, 'vimeo.com' ) && preg_match( '#/(\d{6,12})#', (string) wp_parse_url( $url, PHP_URL_PATH ), $m ) ) {
+			$out['embed'] = 'https://player.vimeo.com/video/' . $m[1];
+		}
+		return $out;
 	}
 
 	/**

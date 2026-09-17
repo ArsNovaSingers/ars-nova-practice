@@ -4,7 +4,7 @@ Tags: choir, practice, assignments, rehearsal
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.4.1
+Stable tag: 0.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,6 +34,15 @@ Drafts are shown to staff on the Hub page itself, so the Hub is the preview.
 The practice player is built on **@dawcore/components** from waveform-playlist by Naomi Aro (MIT License) — https://github.com/naomiaro/waveform-playlist. The built browser bundle is in `assets/player/`, with every bundled licence in `assets/player/THIRD-PARTY-LICENSES.txt` (MIT and BSD-3-Clause, plus waveform-data under LGPL-3.0). Its source, exact versions and build script are in the repository's `player-src/` folder, so the bundle can be rebuilt with any of those libraries replaced.
 
 == Changelog ==
+
+= 0.5.0 =
+The week as a set of task accordions (Jonathan, 2026-09-17).
+* **One practice track per task.** Each track is its own task with its own Done switch, rating and recorder. The weekly builder now allows a task only one practice track and says so.
+* **Tasks collapse and expand.** A task opens into its details, score button, video, recorder and "How is it going?"; the first task of the current week starts open, and opening one closes the others, so only one player is ever loaded. The green track buttons are gone.
+* **Week summary at the top**: tasks done (with a bar), time rehearsed, and how it is going — the average of the singer's own ratings. It updates as the singer works.
+* **Time rehearsed** counts listening AND recording. Tom sees the same three figures per singer in Practice → Progress, as new columns.
+* **Video.** Tom can paste a YouTube (or Vimeo) link on a week and on any task; the page embeds it without cookies. Recording a video inside the Hub is still to come.
+* **The score is a small "Open score PDF" button**, to the right, with the file name under it in small text — most singers will not use it.
 
 = 0.4.1 =
 * A new saved take is called "Take 1", "Take 2"… (the next unused number for the piece). 0.4.0 put the Hub's full piece label in front, which runs to a whole citation ("Corrado Margutti, Rivers, Op. 104 (2020), fo…") and was cut off. The takes box already names the piece, and each row shows the practice track and date.

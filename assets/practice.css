@@ -73,25 +73,30 @@
 .anpr-week-title { margin: 0; font-size: 1.25rem; line-height: 1.25; }
 .anpr-week-meta { margin: 0.2rem 0 0; font-size: 0.9em; color: var(--anpr-muted); }
 
-.anpr-ring {
-	--anpr-pct: 0;
-	flex: 0 0 auto;
-	width: 3.6rem;
-	height: 3.6rem;
-	border-radius: 50%;
-	background: conic-gradient(var(--anpr-done) calc(var(--anpr-pct) * 1%), var(--anpr-soft) 0);
+/* ---------- week summary (0.5.0) ---------- */
+.anpr-summary {
 	display: grid;
-	place-items: center;
-	position: relative;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.75rem;
+	margin: 0.75rem 0 0.25rem;
+	padding: 0.7rem 0.85rem;
+	border: 1px solid var(--anpr-border);
+	border-radius: var(--anpr-radius);
+	background: var(--anpr-soft);
 }
-.anpr-ring::before {
-	content: "";
-	position: absolute;
-	inset: 0.35rem;
-	border-radius: 50%;
-	background: #fff;
-}
-.anpr-ring-text { position: relative; font-weight: 700; font-size: 0.95em; }
+.anpr-stat { display: grid; gap: 0.15rem; align-content: start; min-width: 0; }
+.anpr-stat-label { font-size: 0.75em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--anpr-muted); }
+.anpr-stat-value { font-size: 1.35rem; font-weight: 700; line-height: 1.1; color: var(--anpr-accent); }
+.anpr-stat-note { font-size: 0.78em; color: var(--anpr-muted); }
+.anpr-bar { display: block; height: 0.5rem; border-radius: 999px; background: #fff; border: 1px solid var(--anpr-border); overflow: hidden; margin-top: 0.15rem; }
+.anpr-bar-fill { display: block; height: 100%; background: var(--anpr-done); transition: width 0.25s ease; }
+
+/* ---------- video Tom can add to a week or a task (0.5.0) ---------- */
+.anpr-video { margin: 0.75rem 0; }
+.anpr-video-label { margin: 0 0 0.3rem; font-size: 0.75em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--anpr-muted); }
+.anpr-video-frame { position: relative; max-width: 30rem; padding-top: min(56.25%, 16.9rem); border-radius: var(--anpr-radius); overflow: hidden; background: #000; }
+.anpr-video-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.anpr-video--task .anpr-video-frame { max-width: 22rem; padding-top: min(56.25%, 12.4rem); }
 
 .anpr-note {
 	margin: 0.9rem 0 0;
@@ -115,11 +120,45 @@
 	border-top: 1px solid var(--anpr-border);
 	padding: 0.9rem 0;
 }
-.anpr-task-head { display: flex; gap: 0.75rem; align-items: flex-start; }
-.anpr-task-titles { min-width: 0; }
-.anpr-task-title { margin: 0; font-size: 1.05rem; line-height: 1.3; }
+/* ---------- task accordion (0.5.0) ---------- */
+.anpr-task-head { display: flex; gap: 0.5rem; align-items: center; }
+.anpr-task-toggle {
+	flex: 1 1 auto;
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	min-width: 0;
+	padding: 0.5rem 0.4rem;
+	margin: 0;
+	border: 0;
+	border-radius: 8px;
+	background: none;
+	font: inherit;
+	color: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+.anpr-task-toggle:hover { background: var(--anpr-soft); }
+.anpr-task-toggle:focus-visible { outline: 3px solid var(--anpr-accent); outline-offset: 2px; }
+.anpr-chev {
+	flex: 0 0 auto;
+	width: 0.65rem;
+	height: 0.65rem;
+	border-right: 3px solid var(--anpr-accent);
+	border-bottom: 3px solid var(--anpr-accent);
+	transform: rotate(-45deg);
+	transition: transform 0.15s ease;
+}
+.anpr-task.is-open .anpr-chev { transform: rotate(45deg); }
+.anpr-task-body { margin: 0.2rem 0 0.6rem; }
+.anpr-task-links { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: flex-end; margin: -0.2rem 0 0.4rem; }
+.anpr-openfile { display: grid; justify-items: end; gap: 0.1rem; max-width: 16rem; }
+.anpr-btn--quiet { min-height: 1.9rem; padding: 0.2rem 0.6rem; font-size: 0.8em; }
+.anpr-openfile-name { font-size: 0.7em; color: #1d2433; opacity: 0.75; max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.anpr-task-titles { display: grid; gap: 0.1rem; min-width: 0; }
+.anpr-task-title { display: block; margin: 0; font-size: 1.05rem; font-weight: 700; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; }
 .anpr-task-num { color: var(--anpr-muted); font-weight: 400; margin-right: 0.15em; }
-.anpr-task-meta { margin: 0.15rem 0 0; font-size: 0.85em; color: var(--anpr-muted); }
+.anpr-task-meta { display: block; margin: 0; font-size: 0.85em; color: var(--anpr-muted); }
 .anpr-task.is-done .anpr-task-title { color: var(--anpr-done); }
 .anpr-task-detail { margin: 0.5rem 0 0; }
 .anpr-task-detail p { margin: 0 0 0.4rem; }
@@ -494,6 +533,12 @@
 	.anpr-task-error { margin-left: 0; }
 	.anpr-week { padding: 0.8rem 0.75rem 0.4rem; }
 	.anpr-daw { --daw-controls-width: 172px; }
+	.anpr-summary { grid-template-columns: 1fr 1fr; }
+	.anpr-stat--going { grid-column: 1 / -1; }
+	.anpr-stat-value { font-size: 1.15rem; }
+	.anpr-task-head { flex-wrap: wrap; }
+	.anpr-task-head .anpr-done { margin-left: auto; }
+	.anpr-openfile, .anpr-openfile-name { max-width: 100%; }
 	.anpr-player { padding: 0.5rem; }
 	.anpr-player-bar { grid-template-columns: auto 1fr; padding: 0.5rem; }
 	.anpr-player-bar .anpr-transport { justify-self: end; }

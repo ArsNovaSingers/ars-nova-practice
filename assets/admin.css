@@ -97,3 +97,8 @@
 .anpr-report td.anpr-cell-done { background: #edfaef; }
 .anpr-dim { color: #8c8f94; }
 .anpr-notseen { margin: 0.5rem 0 1rem; }
+
+/* Summary columns in the Progress report (0.5.0). */
+.anpr-report .anpr-cell-sum { white-space: nowrap; }
+.anpr-minibar { display: block; width: 4.5rem; height: 0.4rem; margin-top: 0.2rem; border-radius: 999px; background: #e3e6eb; overflow: hidden; }
+.anpr-minibar span { display: block; height: 100%; background: #2e7d4f; }

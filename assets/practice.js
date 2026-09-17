@@ -64,22 +64,58 @@
 		return String( s ).replace( '%1$d', a ).replace( '%2$d', b ).replace( '%d', a );
 	}
 
+	/** The week's summary bar: tasks done, time rehearsed, how it is going. */
 	function updateRing( week ) {
-		var ring = week && week.querySelector( '[data-anpr-ring]' );
-		if ( ! ring ) {
+		var box = week && week.querySelector( '[data-anpr-summary]' );
+		if ( ! box ) {
 			return;
 		}
 		var tasks = week.querySelectorAll( '[data-anpr-task]' );
 		var done = week.querySelectorAll( '[data-anpr-task].is-done' ).length;
 		var total = tasks.length;
-		ring.style.setProperty( '--anpr-pct', total ? Math.round( ( 100 * done ) / total ) : 0 );
-		var text = ring.querySelector( '.anpr-ring-text' );
-		if ( text ) {
-			text.textContent = done + '/' + total;
+		var el = function ( sel ) { return box.querySelector( sel ); };
+		if ( el( '[data-anpr-donecount]' ) ) {
+			el( '[data-anpr-donecount]' ).textContent = done + ' / ' + total;
 		}
-		var sr = ring.querySelector( '.anpr-sr' );
-		if ( sr ) {
-			sr.textContent = fmt( T.doneOf || '%1$d of %2$d done', done, total );
+		if ( el( '[data-anpr-bar]' ) ) {
+			el( '[data-anpr-bar]' ).style.width = ( total ? Math.round( ( 100 * done ) / total ) : 0 ) + '%';
+		}
+		if ( el( '[data-anpr-donesr]' ) ) {
+			el( '[data-anpr-donesr]' ).textContent = fmt( T.doneOf || '%1$d of %2$d done', done, total );
+		}
+		var sum = 0;
+		var n = 0;
+		tasks.forEach( function ( task ) {
+			var input = task.querySelector( '[data-anpr-rate]' );
+			if ( input && input.getAttribute( 'data-rated' ) === '1' ) {
+				sum += Number( input.value );
+				n++;
+			}
+		} );
+		var avg = el( '[data-anpr-avg]' );
+		if ( avg ) {
+			avg.textContent = n ? ( ( C.ratings || [] )[ Math.round( sum / n ) ] || '' ) : '—';
+		}
+		var note = el( '[data-anpr-avgnote]' );
+		if ( note ) {
+			note.textContent = n ? fmt( T.ratedOf || 'from %1$d of %2$d tasks', n, total ) : ( T.notRatedYet || 'not rated yet' );
+		}
+	}
+
+	/** Add rehearsal seconds to the week's "Time rehearsed", as they happen. */
+	function addSeconds( task, secs ) {
+		var week = task && task.closest( '.anpr-week' );
+		var box = week && week.querySelector( '[data-anpr-summary]' );
+		if ( ! box || ! secs ) {
+			return;
+		}
+		var total = Math.max( 0, Number( box.getAttribute( 'data-anpr-secs' ) || 0 ) + secs );
+		box.setAttribute( 'data-anpr-secs', String( Math.round( total ) ) );
+		var out = box.querySelector( '[data-anpr-time]' );
+		if ( out ) {
+			out.textContent = total < 60
+				? fmt( T.secLabel || '%d sec', Math.round( total ) )
+				: fmt( T.minLabel || '%d min', Math.round( total / 60 ) );
 		}
 	}
 
@@ -158,6 +194,7 @@
 			return;
 		}
 		showRating( input );
+		updateRing( input.closest( '.anpr-week' ) );
 		clearTimeout( rateTimers.get( input ) );
 		rateTimers.set( input, setTimeout( function () {
 			var task = input.closest( '[data-anpr-task]' );
@@ -189,7 +226,7 @@
 
 	// ---------- practice player ----------
 	var modPromise = null;
-	var open = null; // { task, host, button, ctrl, listened, counted, pending }
+	var open = null; // { task, host, ctrl, listened, counted, pending }
 
 	function loadPlayer() {
 		if ( ! modPromise ) {
@@ -231,10 +268,7 @@
 			}
 		} catch ( err ) { /* ignore */ }
 		flush( s, beacon );
-		s.host.hidden = true;
 		s.host.replaceChildren();
-		s.button.setAttribute( 'aria-expanded', 'false' );
-		s.button.classList.remove( 'is-open' );
 	}
 
 	// ---------- saved takes (0.4.0) ----------
@@ -269,11 +303,10 @@
 		return wrap._anprTakes;
 	}
 
-	function openPlayer( button ) {
-		var wrap = button.closest( '.anpr-practice' );
-		var task = button.closest( '[data-anpr-task]' );
-		var item = button.closest( '[data-anpr-track-index]' );
-		var host = item.querySelector( '.anpr-player-host' );
+	function openPlayer( host ) {
+		var wrap = host.closest( '.anpr-practice' );
+		var task = host.closest( '[data-anpr-task]' );
+		var item = host;
 		var json = wrap.querySelector( '[data-anpr-tracks]' );
 		var tracks = [];
 		try {
@@ -286,12 +319,10 @@
 			return;
 		}
 		closePlayer( false );
-		var state = { task: task, host: host, button: button, material: track.id || '', ctrl: null, listened: 0, counted: false, pending: 0 };
+		var state = { task: task, host: host, material: track.id || '', ctrl: null, listened: 0, counted: false, pending: 0 };
 		open = state;
 		host.hidden = false;
 		host.textContent = ( T.player && T.player.loading ) || '…';
-		button.setAttribute( 'aria-expanded', 'true' );
-		button.classList.add( 'is-open' );
 
 		loadPlayer().then( function ( mod ) {
 			if ( open !== state ) {
@@ -327,6 +358,7 @@
 				onListen: function ( secs ) {
 					state.listened += secs;
 					state.pending += secs;
+					addSeconds( task, secs );
 					if ( ! state.counted && state.listened >= PLAY_AFTER ) {
 						state.counted = true;
 						var d = ids( task );
@@ -343,6 +375,19 @@
 						flush( state, false );
 					}
 				},
+				onRecorded: function ( secs ) {
+					// Recording counts as rehearsal time too (Jonathan, 2026-09-17).
+					secs = Math.max( 0, Math.round( secs ) );
+					if ( ! secs ) {
+						return;
+					}
+					addSeconds( task, secs );
+					var d = ids( task );
+					d.event = 'record';
+					d.seconds = secs;
+					d.material_id = state.material;
+					send( d ).catch( function () {} );
+				},
 				onError: function ( msg, detail ) {
 					if ( window.console ) {
 						window.console.warn( '[anpr]', msg, detail );
@@ -357,17 +402,58 @@
 		} );
 	}
 
+	// ---------- task accordions ----------
+	// The recorder IS the task (0.5.0): opening a task mounts its player and
+	// closing it takes the player down, so only one set of audio is ever loaded.
+	function setTask( task, wanted ) {
+		var btn = task.querySelector( '[data-anpr-task-toggle]' );
+		var body = task.querySelector( '.anpr-task-body' );
+		if ( ! btn || ! body ) {
+			return;
+		}
+		btn.setAttribute( 'aria-expanded', wanted ? 'true' : 'false' );
+		body.hidden = ! wanted;
+		task.classList.toggle( 'is-open', !! wanted );
+		var host = body.querySelector( '.anpr-player-host' );
+		if ( ! host ) {
+			return;
+		}
+		if ( wanted ) {
+			if ( ! open || open.host !== host ) {
+				openPlayer( host );
+			}
+		} else if ( open && open.host === host ) {
+			closePlayer( false );
+		}
+	}
+
 	document.addEventListener( 'click', function ( e ) {
-		var btn = e.target.closest && e.target.closest( '[data-anpr-player-toggle]' );
+		var btn = e.target.closest && e.target.closest( '[data-anpr-task-toggle]' );
 		if ( ! btn ) {
 			return;
 		}
-		if ( btn.getAttribute( 'aria-expanded' ) === 'true' ) {
-			closePlayer( false );
-		} else {
-			openPlayer( btn );
+		var task = btn.closest( '[data-anpr-task]' );
+		var isOpen = btn.getAttribute( 'aria-expanded' ) === 'true';
+		if ( ! isOpen ) {
+			// One task at a time keeps the page short and the audio predictable.
+			task.closest( '.anpr-week' ).querySelectorAll( '[data-anpr-task].is-open' ).forEach( function ( other ) {
+				if ( other !== task ) {
+					setTask( other, false );
+				}
+			} );
 		}
+		setTask( task, ! isOpen );
+		setTimeout( checkViews, 50 );
 	} );
+
+	function openTasksOnLoad() {
+		document.querySelectorAll( '[data-anpr-task]' ).forEach( function ( task ) {
+			var btn = task.querySelector( '[data-anpr-task-toggle]' );
+			if ( btn && btn.getAttribute( 'aria-expanded' ) === 'true' ) {
+				setTask( task, true );
+			}
+		} );
+	}
 
 	// A singer switching tabs or closing the page: record what was listened.
 	window.addEventListener( 'pagehide', function () { closePlayer( true ); } );
@@ -380,9 +466,13 @@
 	// Sub-tab switches and <details> toggles can reveal a week.
 	document.addEventListener( 'click', function () { setTimeout( checkViews, 50 ); } );
 	document.addEventListener( 'toggle', function () { setTimeout( checkViews, 50 ); }, true );
-	if ( document.readyState === 'loading' ) {
-		document.addEventListener( 'DOMContentLoaded', checkViews );
-	} else {
+	function start() {
+		openTasksOnLoad();
 		checkViews();
+	}
+	if ( document.readyState === 'loading' ) {
+		document.addEventListener( 'DOMContentLoaded', start );
+	} else {
+		start();
 	}
 }() );

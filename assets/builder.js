@@ -123,11 +123,11 @@
 	}
 
 	function newWeek() {
-		return { id: rid( 'w' ), title: '', due_date: '', due_label: '', show_from: '', note: '', status: 'draft', tasks: [ newTask() ] };
+		return { id: rid( 'w' ), title: '', due_date: '', due_label: '', show_from: '', note: '', video: '', status: 'draft', tasks: [ newTask() ] };
 	}
 
 	function newTask() {
-		return { id: rid( 't' ), title: '', detail: '', minutes: 10, parts: [], materials: [] };
+		return { id: rid( 't' ), title: '', detail: '', video: '', minutes: 10, parts: [], materials: [] };
 	}
 
 	function copyWeek( src ) {
@@ -150,6 +150,11 @@
 			info && info.playable ? el( 'option', { value: 'track', text: 'Practice track (plays in the player)' } ) : null,
 		] );
 		roleSel.value = m.role === 'track' && info && info.playable ? 'track' : 'open';
+		if ( info && info.playable && m.role !== 'track' && trackCount( task ) > 0 ) {
+			// Only one track per task: keep the extra one as an "open" link.
+			roleSel.disabled = true;
+			roleSel.title = 'This task already has a practice track. Give this one its own task.';
+		}
 		roleSel.addEventListener( 'change', function () {
 			m.role = roleSel.value;
 			markDirty();
@@ -195,13 +200,23 @@
 		] );
 	}
 
+	/** A task is one practice track (Jonathan, 2026-09-17): its own accordion,
+	 *  its own Done and its own rating on the singer's page. */
+	function trackCount( task ) {
+		return task.materials.filter( function ( m ) { return m.role === 'track'; } ).length;
+	}
+
 	function attachControl( task ) {
+		var hasTrack = trackCount( task ) > 0;
 		var sel = el( 'select', { 'aria-label': 'Attach a material' }, [ el( 'option', { value: '', text: 'Attach a score, link or recording…' } ) ] );
 		var groups = {};
 		materials.forEach( function ( m ) {
 			var used = task.materials.some( function ( x ) { return x.id === m.id; } );
 			if ( used ) {
 				return;
+			}
+			if ( hasTrack && m.playable ) {
+				return; // one practice track per task
 			}
 			var key = m.piece || 'Other materials';
 			if ( ! groups[ key ] ) {
@@ -215,11 +230,17 @@
 			if ( ! m ) {
 				return;
 			}
-			task.materials.push( { id: m.id, role: m.playable ? 'track' : 'open', part: '', pan: 'center', muted: false, title: m.title, piece: m.piece, type: m.type } );
+			task.materials.push( { id: m.id, role: ( m.playable && ! hasTrack ) ? 'track' : 'open', part: '', pan: 'center', muted: false, title: m.title, piece: m.piece, type: m.type } );
 			markDirty();
 			render();
 		} } );
-		return el( 'div', { class: 'anpr-attach' }, [ sel, add, el( 'span', { class: 'description', text: ' ♪ = can play in the practice player. Practice tracks load in this order — put the main practice recording first so it is Track 1.' } ) ] );
+		return el( 'div', { class: 'anpr-attach' }, [
+			sel,
+			add,
+			el( 'span', { class: 'description', text: hasTrack
+				? ' This task already has its practice track. Add a score or link here; for another track, make another task.'
+				: ' ♪ = plays in the practice player. One practice track per task: the task opens straight into the recorder for that track.' } ),
+		] );
 	}
 
 	function taskCard( week, task, ti ) {
@@ -257,6 +278,7 @@
 				] ),
 			] ),
 			field( 'Details', detail ),
+			field( 'Video link (optional)', bind( task, 'video', el( 'input', { type: 'url', class: 'regular-text', value: task.video || '', placeholder: 'https://www.youtube.com/watch?v=… (shown inside this task)' } ) ) ),
 			el( 'div', { class: 'anpr-field' }, [
 				el( 'span', { class: 'anpr-label', text: 'Who is this for? (none ticked = everyone)' } ),
 				partBoxes,
@@ -297,6 +319,7 @@
 				field( 'Show to singers from', bind( week, 'show_from', el( 'input', { type: 'date', value: week.show_from || '' } ) ), 'Leave empty to show as soon as it is published.' ),
 			] ),
 			field( 'Note from the director (optional)', bind( week, 'note', el( 'textarea', { rows: 3, class: 'large-text', value: week.note || '' } ) ) ),
+			field( 'Video for this week (optional)', bind( week, 'video', el( 'input', { type: 'url', class: 'regular-text', value: week.video || '', placeholder: 'https://www.youtube.com/watch?v=… (shown at the top of the week)' } ) ) ),
 			el( 'ol', { class: 'anpr-task-list' }, week.tasks.map( function ( t, ti ) { return taskCard( week, t, ti ); } ) ),
 			el( 'p', {}, [
 				el( 'button', { type: 'button', class: 'button', text: '+ Add a task', onclick: function () {

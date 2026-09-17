@@ -39,6 +39,7 @@
  *   opts.recording  boolean — offer Track 2 and the Record button
  *   opts.strings    UI text (all optional; English defaults below)
  *   opts.onListen   function(seconds) — listened time, in pieces
+ *   opts.onRecorded function(seconds) — a finished recording, for "time rehearsed"
  *   opts.onError    function(message, detail)
  *   opts.takes      optional { canSave, limit, format, pieceLabel, list: [take],
  *                   api: { start(o), finish(id), rename(id, name), url(id, dl), remove(id) },
@@ -386,6 +387,7 @@ export function mountPlayer(host, opts = {}) {
 	const S = Object.assign({}, DEFAULT_STRINGS, opts.strings || {});
 	const practice = (Array.isArray(opts.tracks) ? opts.tracks : [])[0] || {};
 	const onListen = typeof opts.onListen === 'function' ? opts.onListen : () => {};
+	const onRecorded = typeof opts.onRecorded === 'function' ? opts.onRecorded : () => {};
 	const onError = typeof opts.onError === 'function' ? opts.onError : () => {};
 	const canRecord = !!opts.recording && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 	const T = opts.takes && opts.takes.api ? opts.takes : null;
@@ -793,6 +795,8 @@ export function mountPlayer(host, opts = {}) {
 			recBtn.title = S.record;
 			playBtn.disabled = false;
 			if (e.detail && e.detail.trackId === take.id) {
+				const secs = (e.detail.durationSamples || 0) / (ctx.sampleRate || 44100);
+				if (secs > 0.5) onRecorded(secs);
 				take.hasClip = true;
 				take.buffer = e.detail.audioBuffer;
 				take.offset = e.detail.offsetSamples || 0;

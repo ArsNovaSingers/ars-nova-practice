@@ -321,11 +321,32 @@ class ANPR_Tracking {
 	}
 
 	/**
+	 * Time this singer has spent on each task: listening plus recording (0.5.0).
+	 *
+	 * Jonathan, 2026-09-17: "time rehearsed" counts both, because a singer
+	 * recording a take is working just as much as one playing the track.
+	 *
+	 * @param int $user_id    User.
+	 * @param int $project_id Project.
+	 * @return array<string,int> task_id => seconds
+	 */
+	public static function seconds_for_user( $user_id, $project_id ) {
+		global $wpdb;
+		$table = ANPR_Schema::events_table();
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT task_id, SUM(seconds) AS secs FROM {$table} WHERE user_id = %d AND project_id = %d AND event IN ('listen','record') GROUP BY task_id", (int) $user_id, (int) $project_id ), ARRAY_A ); // phpcs:ignore WordPress.DB
+		$out   = array();
+		foreach ( (array) $rows as $r ) {
+			$out[ $r['task_id'] ] = (int) $r['secs'];
+		}
+		return $out;
+	}
+
+	/**
 	 * Everything the report needs for one week, per user.
 	 *
 	 * @param int    $project_id Project.
 	 * @param string $week_id    Week.
-	 * @return array<int,array> user_id => { tasks: task_id => {done,rating,plays,listen,opens}, viewed, last }
+	 * @return array<int,array> user_id => { tasks: task_id => {done,rating,plays,listen,record,opens}, viewed, last }
 	 */
 	public static function week_summary( $project_id, $week_id ) {
 		global $wpdb;
@@ -359,12 +380,14 @@ class ANPR_Tracking {
 				continue;
 			}
 			if ( ! isset( $out[ $u ]['tasks'][ $t ] ) ) {
-				$out[ $u ]['tasks'][ $t ] = array( 'done' => 0, 'rating' => null, 'plays' => 0, 'listen' => 0, 'opens' => 0 );
+				$out[ $u ]['tasks'][ $t ] = array( 'done' => 0, 'rating' => null, 'plays' => 0, 'listen' => 0, 'record' => 0, 'opens' => 0 );
 			}
 			if ( 'play' === $r['event'] ) {
 				$out[ $u ]['tasks'][ $t ]['plays'] = (int) $r['n'];
 			} elseif ( 'listen' === $r['event'] ) {
 				$out[ $u ]['tasks'][ $t ]['listen'] = (int) $r['secs'];
+			} elseif ( 'record' === $r['event'] ) {
+				$out[ $u ]['tasks'][ $t ]['record'] = (int) $r['secs'];
 			} elseif ( 'open' === $r['event'] ) {
 				$out[ $u ]['tasks'][ $t ]['opens'] = (int) $r['n'];
 			}
@@ -378,7 +401,7 @@ class ANPR_Tracking {
 				$out[ $u ] = array( 'tasks' => array(), 'viewed' => 0, 'last' => '' );
 			}
 			if ( ! isset( $out[ $u ]['tasks'][ $t ] ) ) {
-				$out[ $u ]['tasks'][ $t ] = array( 'done' => 0, 'rating' => null, 'plays' => 0, 'listen' => 0, 'opens' => 0 );
+				$out[ $u ]['tasks'][ $t ] = array( 'done' => 0, 'rating' => null, 'plays' => 0, 'listen' => 0, 'record' => 0, 'opens' => 0 );
 			}
 			$out[ $u ]['tasks'][ $t ]['done']   = (int) $r['done'];
 			$out[ $u ]['tasks'][ $t ]['rating'] = null === $r['rating'] ? null : (int) $r['rating'];

@@ -64,14 +64,22 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 				$tasks[] = $task;
 			}
 		}
-		$done    = 0;
-		$minutes = 0;
+		$done     = 0;
+		$minutes  = 0;
+		$rated    = array();
+		$secs     = 0;
 		foreach ( $tasks as $task ) {
 			$minutes += (int) $task['minutes'];
-			if ( ! empty( $block['progress'][ $task['id'] ]['done'] ) ) {
+			$prog_t   = isset( $block['progress'][ $task['id'] ] ) ? $block['progress'][ $task['id'] ] : null;
+			if ( ! empty( $prog_t['done'] ) ) {
 				++$done;
 			}
+			if ( $prog_t && null !== $prog_t['rating'] && '' !== $prog_t['rating'] ) {
+				$rated[] = (int) $prog_t['rating'];
+			}
+			$secs += isset( $block['seconds'][ $task['id'] ] ) ? (int) $block['seconds'][ $task['id'] ] : 0;
 		}
+		$avg = $rated ? (int) round( array_sum( $rated ) / count( $rated ) ) : null;
 		$total = count( $tasks );
 		$due   = ANPR_Frontend::date_label( $week['due_date'] );
 		$pct   = $total ? round( 100 * $done / $total ) : 0;
@@ -110,11 +118,54 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 						?>
 					</p>
 				</div>
-				<div class="anpr-ring" style="--anpr-pct: <?php echo esc_attr( (string) $pct ); ?>;" data-anpr-ring data-done="<?php echo esc_attr( (string) $done ); ?>" data-total="<?php echo esc_attr( (string) $total ); ?>">
-					<span class="anpr-ring-text" aria-live="polite"><?php echo esc_html( $done . '/' . $total ); ?></span>
-					<span class="anpr-sr"><?php echo esc_html( sprintf( /* translators: 1: done, 2: total */ __( '%1$d of %2$d done', 'ars-nova-practice' ), $done, $total ) ); ?></span>
-				</div>
 			</header>
+
+			<?php
+			/*
+			 * The week at a glance (0.5.0, Jonathan): tasks done as a bar, time
+			 * rehearsed (listening + recording) and the average of the singer's
+			 * own "How is it going?" answers. Tom sees the same three figures per
+			 * singer in Practice → Progress.
+			 */
+			?>
+			<div class="anpr-summary" data-anpr-summary
+				data-anpr-done="<?php echo esc_attr( (string) $done ); ?>"
+				data-anpr-total="<?php echo esc_attr( (string) $total ); ?>"
+				data-anpr-secs="<?php echo esc_attr( (string) $secs ); ?>">
+				<div class="anpr-stat anpr-stat--tasks">
+					<span class="anpr-stat-label"><?php esc_html_e( 'Tasks done', 'ars-nova-practice' ); ?></span>
+					<span class="anpr-stat-value" data-anpr-donecount><?php echo esc_html( $done . ' / ' . $total ); ?></span>
+					<span class="anpr-bar" aria-hidden="true"><span class="anpr-bar-fill" data-anpr-bar style="width: <?php echo esc_attr( (string) ( $total ? round( 100 * $done / $total ) : 0 ) ); ?>%"></span></span>
+					<span class="anpr-sr" aria-live="polite" data-anpr-donesr><?php echo esc_html( sprintf( /* translators: 1: done, 2: total */ __( '%1$d of %2$d tasks done', 'ars-nova-practice' ), $done, $total ) ); ?></span>
+				</div>
+				<div class="anpr-stat anpr-stat--time">
+					<span class="anpr-stat-label"><?php esc_html_e( 'Time rehearsed', 'ars-nova-practice' ); ?></span>
+					<span class="anpr-stat-value" data-anpr-time><?php echo esc_html( ANPR_Frontend::minutes_label( $secs ) ); ?></span>
+					<span class="anpr-stat-note">
+						<?php
+						if ( $minutes ) {
+							/* translators: %d: minutes */
+							echo esc_html( sprintf( __( 'about %d min of work set', 'ars-nova-practice' ), $minutes ) );
+						}
+						?>
+					</span>
+				</div>
+				<div class="anpr-stat anpr-stat--going">
+					<span class="anpr-stat-label"><?php esc_html_e( 'How it is going', 'ars-nova-practice' ); ?></span>
+					<span class="anpr-stat-value" data-anpr-avg><?php echo esc_html( null === $avg ? __( '—', 'ars-nova-practice' ) : $labels[ $avg ] ); ?></span>
+					<span class="anpr-stat-note" data-anpr-avgnote>
+						<?php
+						echo esc_html(
+							$rated
+								/* translators: 1: rated tasks, 2: total tasks */
+								? sprintf( __( 'from %1$d of %2$d tasks', 'ars-nova-practice' ), count( $rated ), $total )
+								: __( 'not rated yet', 'ars-nova-practice' )
+						);
+						?>
+					</span>
+				</div>
+			</div>
+
 
 			<?php if ( ! empty( $week['staff_only'] ) ) : ?>
 				<p class="anpr-staff-badge">
@@ -136,6 +187,22 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 				</div>
 			<?php endif; ?>
 
+			<?php
+			$wvid = ANPR_Frontend::video_embed( isset( $week['video'] ) ? $week['video'] : '' );
+			if ( '' !== $wvid['url'] ) :
+				?>
+				<div class="anpr-video">
+					<p class="anpr-video-label"><?php esc_html_e( 'This week on video', 'ars-nova-practice' ); ?></p>
+					<?php if ( '' !== $wvid['embed'] ) : ?>
+						<div class="anpr-video-frame">
+							<iframe src="<?php echo esc_url( $wvid['embed'] ); ?>" title="<?php esc_attr_e( 'Video from the director', 'ars-nova-practice' ); ?>" loading="lazy" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; encrypted-media; picture-in-picture; fullscreen"></iframe>
+						</div>
+					<?php else : ?>
+						<p><a class="anpr-btn" href="<?php echo esc_url( $wvid['url'] ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Watch the video', 'ars-nova-practice' ); ?></a></p>
+					<?php endif; ?>
+				</div>
+			<?php endif; ?>
+
 			<?php if ( empty( $tasks ) ) : ?>
 				<p class="anpr-empty"><?php esc_html_e( 'No tasks for your part this week.', 'ars-nova-practice' ); ?></p>
 			<?php else : ?>
@@ -154,6 +221,32 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 							data-anpr-week="<?php echo esc_attr( $week['id'] ); ?>"
 							data-anpr-project="<?php echo esc_attr( (string) $project_id ); ?>">
 							<div class="anpr-task-head">
+								<button type="button" class="anpr-task-toggle" data-anpr-task-toggle
+									aria-expanded="<?php echo $current && 0 === $i ? 'true' : 'false'; ?>"
+									aria-controls="<?php echo esc_attr( $dom . '-body' ); ?>">
+									<span class="anpr-chev" aria-hidden="true"></span>
+									<span class="anpr-task-titles">
+										<span class="anpr-task-title">
+											<span class="anpr-task-num"><?php echo esc_html( (string) ( $i + 1 ) ); ?>.</span>
+											<?php echo esc_html( $task['title'] ); ?>
+										</span>
+										<span class="anpr-task-meta">
+											<?php
+											$meta = array();
+											if ( $task['minutes'] ) {
+												/* translators: %d: minutes */
+												$meta[] = sprintf( __( '%d min', 'ars-nova-practice' ), (int) $task['minutes'] );
+											}
+											$meta[] = empty( $task['parts'] ) ? __( 'Everyone', 'ars-nova-practice' ) : implode( ', ', $task['parts'] );
+											$tsecs  = isset( $block['seconds'][ $task['id'] ] ) ? (int) $block['seconds'][ $task['id'] ] : 0;
+											if ( $tsecs >= 60 ) {
+												$meta[] = ANPR_Frontend::minutes_label( $tsecs );
+											}
+											echo esc_html( implode( ' · ', $meta ) );
+											?>
+										</span>
+									</span>
+								</button>
 								<label class="anpr-done">
 									<input type="checkbox" role="switch" data-anpr-done <?php checked( $is_done ); ?>>
 									<span class="anpr-switch" aria-hidden="true"><span class="anpr-switch-knob"></span></span>
@@ -161,108 +254,98 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 									<span class="anpr-switch-text anpr-switch-on" aria-hidden="true"><?php esc_html_e( 'Done', 'ars-nova-practice' ); ?></span>
 									<span class="anpr-sr"><?php echo esc_html( sprintf( /* translators: %s: task title */ __( 'Done: %s', 'ars-nova-practice' ), $task['title'] ) ); ?></span>
 								</label>
-								<div class="anpr-task-titles">
-									<h5 class="anpr-task-title">
-										<span class="anpr-task-num"><?php echo esc_html( (string) ( $i + 1 ) ); ?>.</span>
-										<?php echo esc_html( $task['title'] ); ?>
-									</h5>
-									<?php
-									$meta = array();
-									if ( $task['minutes'] ) {
-										/* translators: %d: minutes */
-										$meta[] = sprintf( __( '%d min', 'ars-nova-practice' ), (int) $task['minutes'] );
-									}
-									$meta[] = empty( $task['parts'] ) ? __( 'Everyone', 'ars-nova-practice' ) : implode( ', ', $task['parts'] );
-									?>
-									<p class="anpr-task-meta"><?php echo esc_html( implode( ' · ', $meta ) ); ?></p>
-								</div>
 							</div>
 
-							<?php if ( '' !== $task['detail'] ) : ?>
-								<div class="anpr-task-detail"><?php echo wp_kses_post( wpautop( esc_html( $task['detail'] ) ) ); ?></div>
-							<?php endif; ?>
-
-							<?php if ( ! empty( $mats['links'] ) ) : ?>
-								<p class="anpr-task-links">
-									<?php foreach ( $mats['links'] as $link ) : ?>
-										<a class="anpr-btn anpr-link" href="<?php echo esc_url( $link['url'] ); ?>" target="_blank" rel="noopener noreferrer" data-anpr-open="<?php echo esc_attr( $link['id'] ); ?>">
-											<?php echo esc_html( $link['title'] ); ?>
-										</a>
-									<?php endforeach; ?>
-								</p>
-							<?php endif; ?>
-
-							<?php if ( ! empty( $mats['tracks'] ) ) : ?>
-								<div class="anpr-practice">
-									<?php
-									/*
-									 * One player per practice track (Jonathan, 2026-09-17): each track
-									 * opens on its own, with its own Play / Record / Stop, and takes
-									 * are recorded under that track only.
-									 */
-									?>
-									<ul class="anpr-track-list">
-										<?php foreach ( $mats['tracks'] as $ti => $track ) : ?>
-											<li class="anpr-track-item" data-anpr-track-index="<?php echo esc_attr( (string) $ti ); ?>">
-												<button type="button" class="anpr-btn anpr-track-open" data-anpr-player-toggle aria-expanded="false" aria-controls="<?php echo esc_attr( $dom . '-player-' . $ti ); ?>">
-													<span class="anpr-track-play" aria-hidden="true"></span>
-													<span class="anpr-track-name">
-														<?php
-														echo esc_html(
-															( count( $mats['tracks'] ) > 1 ? sprintf( /* translators: %d: track number */ __( 'Track %d', 'ars-nova-practice' ), $ti + 1 ) . ' · ' : '' )
-															. $track['title']
-														);
-														?>
-													</span>
-													<?php if ( '' !== $track['part'] ) : ?>
-														<span class="anpr-mix-part"><?php echo esc_html( $track['part'] ); ?></span>
-													<?php endif; ?>
-												</button>
-												<div class="anpr-player-host" id="<?php echo esc_attr( $dom . '-player-' . $ti ); ?>" hidden></div>
-											</li>
+							<div class="anpr-task-body" id="<?php echo esc_attr( $dom . '-body' ); ?>" <?php echo $current && 0 === $i ? '' : 'hidden'; ?>>
+								<?php if ( ! empty( $mats['links'] ) ) : ?>
+									<div class="anpr-task-links">
+										<?php foreach ( $mats['links'] as $link ) : ?>
+											<span class="anpr-openfile">
+												<a class="anpr-btn anpr-btn--quiet" href="<?php echo esc_url( $link['url'] ); ?>" target="_blank" rel="noopener noreferrer" data-anpr-open="<?php echo esc_attr( $link['id'] ); ?>">
+													<?php echo esc_html( 'sheet_music' === $link['type'] ? __( 'Open score PDF', 'ars-nova-practice' ) : __( 'Open file', 'ars-nova-practice' ) ); ?>
+												</a>
+												<span class="anpr-openfile-name" title="<?php echo esc_attr( $link['title'] ); ?>"><?php echo esc_html( $link['title'] ); ?></span>
+											</span>
 										<?php endforeach; ?>
-									</ul>
-									<div class="anpr-practice-bar">
-										<span class="anpr-plays" data-anpr-plays="<?php echo esc_attr( (string) $plays ); ?>">
-											<?php
-											echo esc_html(
-												$plays
-													/* translators: %d: play count */
-													? sprintf( __( 'Played %d×', 'ars-nova-practice' ), $plays )
-													: __( 'Not played yet', 'ars-nova-practice' )
-											);
-											?>
-										</span>
 									</div>
-									<script type="application/json" data-anpr-tracks><?php echo wp_json_encode( $mats['tracks'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES ); ?></script>
-									<?php
-									// Saved takes for the pieces these tracks belong to (0.4.0).
-									$task_takes = array();
-									foreach ( $mats['tracks'] as $track ) {
-										$task_takes[ $track['piece'] ] = isset( $block['takes'][ $track['piece'] ] ) ? $block['takes'][ $track['piece'] ] : array();
-									}
+								<?php endif; ?>
+
+								<?php
+								$tvid = ANPR_Frontend::video_embed( isset( $task['video'] ) ? $task['video'] : '' );
+								if ( '' !== $tvid['url'] ) :
 									?>
-									<script type="application/json" data-anpr-takes><?php echo wp_json_encode( (object) $task_takes, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES ); ?></script>
-								</div>
-							<?php endif; ?>
+									<div class="anpr-video anpr-video--task">
+										<?php if ( '' !== $tvid['embed'] ) : ?>
+											<div class="anpr-video-frame">
+												<iframe src="<?php echo esc_url( $tvid['embed'] ); ?>" title="<?php esc_attr_e( 'Video for this task', 'ars-nova-practice' ); ?>" loading="lazy" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; encrypted-media; picture-in-picture; fullscreen"></iframe>
+											</div>
+										<?php else : ?>
+											<p><a class="anpr-btn" href="<?php echo esc_url( $tvid['url'] ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Watch the video', 'ars-nova-practice' ); ?></a></p>
+										<?php endif; ?>
+									</div>
+								<?php endif; ?>
 
-							<div class="anpr-rating<?php echo null === $rating ? ' is-unrated' : ''; ?>">
-								<label class="anpr-rating-label" for="<?php echo esc_attr( $dom . '-rate' ); ?>"><?php esc_html_e( 'How is it going?', 'ars-nova-practice' ); ?></label>
-								<input type="range" id="<?php echo esc_attr( $dom . '-rate' ); ?>" min="0" max="3" step="1"
-									value="<?php echo esc_attr( (string) ( null === $rating ? 1 : $rating ) ); ?>"
-									data-anpr-rate data-rated="<?php echo null === $rating ? '0' : '1'; ?>"
-									aria-valuetext="<?php echo esc_attr( null === $rating ? __( 'Not rated yet', 'ars-nova-practice' ) : $labels[ $rating ] ); ?>">
-								<div class="anpr-rating-scale" aria-hidden="true">
-									<?php foreach ( $labels as $label ) : ?>
-										<span><?php echo esc_html( $label ); ?></span>
-									<?php endforeach; ?>
+								<?php if ( '' !== $task['detail'] ) : ?>
+									<div class="anpr-task-detail"><?php echo wp_kses_post( wpautop( esc_html( $task['detail'] ) ) ); ?></div>
+								<?php endif; ?>
+
+								<?php if ( ! empty( $mats['tracks'] ) ) : ?>
+									<div class="anpr-practice">
+										<?php
+										/*
+										 * One practice track per task (Jonathan, 2026-09-17): the
+										 * recorder is the task, so it opens with the task and there
+										 * is no separate button. A task that still carries more than
+										 * one track shows the first and tells managers to split it.
+										 */
+										?>
+										<div class="anpr-player-host" data-anpr-track-index="0" id="<?php echo esc_attr( $dom . '-player' ); ?>"></div>
+										<div class="anpr-practice-bar">
+											<span class="anpr-plays" data-anpr-plays="<?php echo esc_attr( (string) $plays ); ?>">
+												<?php
+												echo esc_html(
+													$plays
+														/* translators: %d: play count */
+														? sprintf( __( 'Played %d×', 'ars-nova-practice' ), $plays )
+														: __( 'Not played yet', 'ars-nova-practice' )
+												);
+												?>
+											</span>
+										</div>
+										<?php if ( count( $mats['tracks'] ) > 1 && $data['is_manager'] ) : ?>
+											<p class="anpr-staff-badge">
+												<?php esc_html_e( 'This task has more than one practice track. Singers see the first one. Give each track its own task in the weekly builder.', 'ars-nova-practice' ); ?>
+											</p>
+										<?php endif; ?>
+										<script type="application/json" data-anpr-tracks><?php echo wp_json_encode( array_slice( $mats['tracks'], 0, 1 ), JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES ); ?></script>
+										<?php
+										$task_takes = array();
+										foreach ( array_slice( $mats['tracks'], 0, 1 ) as $track ) {
+											$task_takes[ $track['piece'] ] = isset( $block['takes'][ $track['piece'] ] ) ? $block['takes'][ $track['piece'] ] : array();
+										}
+										?>
+										<script type="application/json" data-anpr-takes><?php echo wp_json_encode( (object) $task_takes, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES ); ?></script>
+									</div>
+								<?php endif; ?>
+
+								<div class="anpr-rating<?php echo null === $rating ? ' is-unrated' : ''; ?>">
+									<label class="anpr-rating-label" for="<?php echo esc_attr( $dom . '-rate' ); ?>"><?php esc_html_e( 'How is it going?', 'ars-nova-practice' ); ?></label>
+									<input type="range" id="<?php echo esc_attr( $dom . '-rate' ); ?>" min="0" max="3" step="1"
+										value="<?php echo esc_attr( (string) ( null === $rating ? 1 : $rating ) ); ?>"
+										data-anpr-rate data-rated="<?php echo null === $rating ? '0' : '1'; ?>"
+										aria-valuetext="<?php echo esc_attr( null === $rating ? __( 'Not rated yet', 'ars-nova-practice' ) : $labels[ $rating ] ); ?>">
+									<div class="anpr-rating-scale" aria-hidden="true">
+										<?php foreach ( $labels as $label ) : ?>
+											<span><?php echo esc_html( $label ); ?></span>
+										<?php endforeach; ?>
+									</div>
+									<output class="anpr-rating-out" for="<?php echo esc_attr( $dom . '-rate' ); ?>">
+										<?php echo esc_html( null === $rating ? __( 'Not rated yet', 'ars-nova-practice' ) : $labels[ $rating ] ); ?>
+									</output>
 								</div>
-								<output class="anpr-rating-out" for="<?php echo esc_attr( $dom . '-rate' ); ?>">
-									<?php echo esc_html( null === $rating ? __( 'Not rated yet', 'ars-nova-practice' ) : $labels[ $rating ] ); ?>
-								</output>
+
+								<p class="anpr-task-error" role="alert" hidden></p>
 							</div>
-
-							<p class="anpr-task-error" role="alert" hidden></p>
 						</li>
 					<?php endforeach; ?>
 				</ol>
@@ -274,7 +357,7 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 ?>
 <div class="anpr-page" data-anpr-page>
 	<p class="anpr-privacy">
-		<?php esc_html_e( 'Flip each task from Not done to Done when you have finished it, and say how it is going. Tom, Zahnay and the site admins can see which tasks you marked done, your ratings and how often you play the practice tracks.', 'ars-nova-practice' ); ?>
+		<?php esc_html_e( 'Open a task to work on it: the practice track, the recorder and the rest are inside. Flip it to Done when you have finished, and say how it is going. Tom, Zahnay and the site admins can see which tasks you marked done, your ratings, and how long you have rehearsed.', 'ars-nova-practice' ); ?>
 	</p>
 
 	<?php foreach ( $anpr_data['projects'] as $anpr_block ) : ?>

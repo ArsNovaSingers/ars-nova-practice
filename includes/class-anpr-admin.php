@@ -463,6 +463,9 @@ class ANPR_Admin {
 				<tr>
 					<th scope="col"><?php esc_html_e( 'Singer', 'ars-nova-practice' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Last activity', 'ars-nova-practice' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Tasks done', 'ars-nova-practice' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Time rehearsed', 'ars-nova-practice' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'How it is going', 'ars-nova-practice' ); ?></th>
 					<?php foreach ( $tasks as $i => $t ) : ?>
 						<th scope="col" title="<?php echo esc_attr( $t['title'] ); ?>">
 							<?php echo esc_html( ( $i + 1 ) . '. ' . wp_trim_words( $t['title'], 5 ) ); ?>
@@ -475,7 +478,7 @@ class ANPR_Admin {
 			</thead>
 			<tbody>
 				<?php if ( ! $singers ) : ?>
-					<tr><td colspan="<?php echo esc_attr( (string) ( 2 + count( $tasks ) ) ); ?>"><?php esc_html_e( 'No singers can see this concert yet.', 'ars-nova-practice' ); ?></td></tr>
+					<tr><td colspan="<?php echo esc_attr( (string) ( 5 + count( $tasks ) ) ); ?>"><?php esc_html_e( 'No singers can see this concert yet.', 'ars-nova-practice' ); ?></td></tr>
 				<?php endif; ?>
 				<?php foreach ( $singers as $u ) : ?>
 					<?php
@@ -502,6 +505,47 @@ class ANPR_Admin {
 							}
 							?>
 						</td>
+						<?php
+						// The three figures the singer sees at the top of the week (0.5.0).
+						$mine    = 0;
+						$mydone  = 0;
+						$mysecs  = 0;
+						$myrated = array();
+						foreach ( $tasks as $t ) {
+							if ( ! ANPR_Weeks::task_is_for( $t, $parts ) ) {
+								continue;
+							}
+							++$mine;
+							$ts = $s && isset( $s['tasks'][ $t['id'] ] ) ? $s['tasks'][ $t['id'] ] : null;
+							if ( $ts && $ts['done'] ) {
+								++$mydone;
+							}
+							if ( $ts ) {
+								$mysecs += (int) $ts['listen'] + (int) $ts['record'];
+								if ( null !== $ts['rating'] ) {
+									$myrated[] = (int) $ts['rating'];
+								}
+							}
+						}
+						$mypct = $mine ? round( 100 * $mydone / $mine ) : 0;
+						?>
+						<td class="anpr-cell-sum">
+							<strong><?php echo esc_html( $mydone . ' / ' . $mine ); ?></strong>
+							<span class="anpr-minibar" aria-hidden="true"><span style="width: <?php echo esc_attr( (string) $mypct ); ?>%"></span></span>
+						</td>
+						<td class="anpr-cell-sum">
+							<?php echo esc_html( $mysecs ? ANPR_Frontend::minutes_label( $mysecs ) : '—' ); ?>
+						</td>
+						<td class="anpr-cell-sum">
+							<?php
+							if ( $myrated ) {
+								echo esc_html( $labels[ (int) round( array_sum( $myrated ) / count( $myrated ) ) ] );
+								echo '<br><small>' . esc_html( sprintf( /* translators: 1: rated, 2: total */ __( '%1$d of %2$d rated', 'ars-nova-practice' ), count( $myrated ), $mine ) ) . '</small>';
+							} else {
+								echo '<span class="anpr-dim">—</span>';
+							}
+							?>
+						</td>
 						<?php foreach ( $tasks as $t ) : ?>
 							<?php
 							if ( ! ANPR_Weeks::task_is_for( $t, $parts ) ) {
@@ -521,9 +565,9 @@ class ANPR_Admin {
 									/* translators: %d: plays */
 									$bits[] = sprintf( __( '▶ %d×', 'ars-nova-practice' ), (int) $ts['plays'] );
 								}
-								if ( $ts && $ts['listen'] >= 60 ) {
-									/* translators: %d: minutes */
-									$bits[] = sprintf( __( '%d min listened', 'ars-nova-practice' ), (int) floor( $ts['listen'] / 60 ) );
+								if ( $ts && ( (int) $ts['listen'] + (int) $ts['record'] ) >= 60 ) {
+									/* translators: %s: time, e.g. "12 min" */
+									$bits[] = sprintf( __( '%s rehearsed', 'ars-nova-practice' ), ANPR_Frontend::minutes_label( (int) $ts['listen'] + (int) $ts['record'] ) );
 								}
 								if ( $ts && $ts['opens'] ) {
 									/* translators: %d: count */
@@ -538,7 +582,7 @@ class ANPR_Admin {
 			</tbody>
 		</table>
 		</div>
-		<p class="description"><?php esc_html_e( '"▶" counts a play when a singer listened for at least 20 seconds in one sitting. Done marks and ratings are what the singer chose; they are not checked.', 'ars-nova-practice' ); ?></p>
+		<p class="description"><?php esc_html_e( '"▶" counts a play when a singer listened for at least 20 seconds in one sitting. "Time rehearsed" adds up listening and recording. Done marks and ratings are what the singer chose; they are not checked.', 'ars-nova-practice' ); ?></p>
 		</div>
 		<?php
 	}

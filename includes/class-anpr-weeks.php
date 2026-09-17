@@ -112,6 +112,7 @@ class ANPR_Weeks {
 				'due_label' => isset( $w['due_label'] ) ? sanitize_text_field( (string) $w['due_label'] ) : '',
 				'show_from' => self::clean_date( isset( $w['show_from'] ) ? $w['show_from'] : '' ),
 				'note'      => isset( $w['note'] ) ? sanitize_textarea_field( (string) $w['note'] ) : '',
+				'video'     => self::clean_video( isset( $w['video'] ) ? $w['video'] : '' ),
 				'status'    => ( isset( $w['status'] ) && 'published' === $w['status'] ) ? 'published' : 'draft',
 				'tasks'     => $tasks,
 			);
@@ -180,10 +181,26 @@ class ANPR_Weeks {
 			'id'        => $id,
 			'title'     => $title,
 			'detail'    => isset( $t['detail'] ) ? sanitize_textarea_field( (string) $t['detail'] ) : '',
+			'video'     => self::clean_video( isset( $t['video'] ) ? $t['video'] : '' ),
 			'minutes'   => isset( $t['minutes'] ) ? max( 0, min( 600, (int) $t['minutes'] ) ) : 0,
 			'parts'     => $parts,
 			'materials' => $materials,
 		);
+	}
+
+	/**
+	 * A video link Tom can add to a week or a task (0.5.0).
+	 *
+	 * Only https links are kept, and only the ones the page can embed or open
+	 * safely. YouTube and Vimeo are embedded (see ANPR_Frontend::video_embed);
+	 * anything else https is shown as a plain link.
+	 *
+	 * @param mixed $raw Raw value.
+	 * @return string
+	 */
+	public static function clean_video( $raw ) {
+		$url = esc_url_raw( trim( (string) $raw ), array( 'https' ) );
+		return $url ? mb_substr( $url, 0, 300 ) : '';
 	}
 
 	/**
