@@ -259,6 +259,8 @@
 }
 .anpr-mix-label { min-width: 10rem; flex: 1 1 12rem; }
 .anpr-mix-name { font-weight: 600; }
+.anpr-mix-row.is-failed .anpr-mix-name { color: #a4231b; }
+.anpr-mix-error { display: block; font-size: 0.85em; color: #a4231b; }
 .anpr-mix-part {
 	margin-left: 0.4rem;
 	padding: 0.05rem 0.45rem;

@@ -13,7 +13,8 @@
  *
  * RECORDING (test feature). The browser records the MICROPHONE ONLY — never
  * what the page is playing — so with headphones on, the take is the singer's
- * voice alone. It lands on its own "Your take" track under the backing track.
+ * voice alone. Each press of Record adds a new take track ("Take 1", "Take 2"…)
+ * under the practice tracks, so the player always opens with just the music.
  * Takes stay in this browser tab (play back, download as .wav); nothing is
  * uploaded in this version.
  *
@@ -54,7 +55,10 @@ const DEFAULT_STRINGS = {
 	record: 'Record',
 	stopRecord: 'Stop recording',
 	recording: 'Recording… sing along.',
-	takeDone: 'Take saved in this page. Press Play to hear it with the music.',
+	takeDone: 'Take saved in this page. Press Back to start, then Play, to hear it with the music.',
+	take: 'Take %s',
+	track: 'Track %s',
+	trackFailed: 'This track could not be loaded.',
 	takeOnly: 'Hear my take only',
 	withMusic: 'Hear it with the music',
 	download: 'Download my take (.wav)',
@@ -142,21 +146,23 @@ export function mountPlayer(host, opts = {}) {
 
 	const mixer = el('ul', { class: 'anpr-mixer' });
 	const trackEls = [];
+	const rowsByTrack = new Map();
 	tracks.forEach((t, i) => {
 		const pan = PAN[t.pan] !== undefined ? t.pan : 'center';
-		const tEl = el('daw-track', { src: t.src, name: t.title || ('Track ' + (i + 1)), muted: !!t.muted });
+		const label = S.track.replace('%s', String(i + 1)) + ' · ' + (t.title || '');
+		const tEl = el('daw-track', { src: t.src, name: label, muted: !!t.muted });
 		tEl.volume = 1;
 		tEl.pan = PAN[pan];
 		editor.append(tEl);
 		trackEls.push(tEl);
-		mixer.append(mixerRow(tEl, t, pan));
+		const row = mixerRow(tEl, Object.assign({}, t, { title: label }), pan);
+		rowsByTrack.set(tEl.trackId, row);
+		mixer.append(row);
 	});
 
+	// Takes are added when the singer presses Record, never before.
 	let takeEl = null;
-	if (opts.recording) {
-		takeEl = el('daw-track', { name: S.yourTake });
-		editor.append(takeEl);
-	}
+	let takeCount = 0;
 
 	const wrap = el('div', { class: 'anpr-player' }, [bar, editor, mixer]);
 	let rec = null;
@@ -238,6 +244,12 @@ export function mountPlayer(host, opts = {}) {
 	});
 	const failed = (e) => {
 		status.textContent = S.loadFailed;
+		const id = e && e.detail && e.detail.trackId;
+		const row = id && rowsByTrack.get(id);
+		if (row && !row.querySelector('.anpr-mix-error')) {
+			row.classList.add('is-failed');
+			row.querySelector('.anpr-mix-label').append(el('span', { class: 'anpr-mix-error', text: S.trackFailed }));
+		}
 		onError(S.loadFailed, e && e.detail);
 	};
 	editor.addEventListener('daw-track-error', failed);
@@ -352,18 +364,24 @@ export function mountPlayer(host, opts = {}) {
 
 		recBtn.addEventListener('click', async () => {
 			if (!stream) return;
-			const trackId = takeEl && takeEl.trackId;
 			if (editor.isRecording) {
 				editor.stopRecording();
 				return;
 			}
 			try { if (ctx.state !== 'running') await ctx.resume(); } catch (err) { /* ignore */ }
+			// A fresh track for this take, added under the practice tracks.
+			if (takeOnly && takeEl) takeEl.removeAttribute('soloed');
+			takeCount += 1;
+			takeEl = el('daw-track', { name: S.take.replace('%s', String(takeCount)) });
+			editor.append(takeEl);
+			await new Promise((r) => setTimeout(r, 60)); // let the editor register it
+			const trackId = takeEl.trackId;
 			const offset = Math.max(0, measured + Number(corr.value) / 1000);
 			await editor.startRecording(stream, {
 				trackId,
 				overdub: true,
 				latencyOffset: offset,
-				clipName: S.yourTake,
+				clipName: S.take.replace('%s', String(takeCount)),
 			});
 			if (editor.isRecording) {
 				recBtn.textContent = S.stopRecord;
@@ -382,9 +400,14 @@ export function mountPlayer(host, opts = {}) {
 			dl.href = URL.createObjectURL(toWav(lastBuffer, lastOffset));
 			dl.hidden = false;
 			soloBtn.disabled = false;
+			takeOnly = false;
+			soloBtn.textContent = S.takeOnly;
+			soloBtn.setAttribute('aria-pressed', 'false');
+			dl.download = 'practice-take-' + takeCount + '.wav';
 		});
 
 		soloBtn.addEventListener('click', () => {
+			if (!takeEl) return;
 			takeOnly = !takeOnly;
 			if (takeOnly) takeEl.setAttribute('soloed', '');
 			else takeEl.removeAttribute('soloed');

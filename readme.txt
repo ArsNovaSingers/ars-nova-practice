@@ -4,7 +4,7 @@ Tags: choir, practice, assignments, rehearsal
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.1.2
+Stable tag: 0.1.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,6 +34,10 @@ Drafts are shown to staff on the Hub page itself, so the Hub is the preview.
 The practice player is built on **@dawcore/components** from waveform-playlist by Naomi Aro (MIT License) — https://github.com/naomiaro/waveform-playlist. The built browser bundle is in `assets/player/`, with every bundled licence in `assets/player/THIRD-PARTY-LICENSES.txt` (MIT and BSD-3-Clause, plus waveform-data under LGPL-3.0). Its source, exact versions and build script are in the repository's `player-src/` folder, so the bundle can be rebuilt with any of those libraries replaced.
 
 == Changelog ==
+
+= 0.1.3 =
+* **Practice tracks load again.** The track links were written with `&amp;` inside the page's JSON, so the browser sent a scrambled request and the Hub answered 403 — no track loaded, on staging, on 2026-09-17. Fixed, and a track that fails to load is now named in the player.
+* **The player opens with just the music.** Tracks are numbered Track 1, Track 2 in the order the builder lists them (the builder can now reorder attached items); a take track is added only when Record is pressed, one per take (Take 1, Take 2…).
 
 = 0.1.2 =
 * The "Download my take" button no longer shows before a take has been recorded (a button style was overriding `hidden`).

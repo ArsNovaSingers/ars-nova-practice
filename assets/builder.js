@@ -185,6 +185,8 @@
 			] ),
 			roleSel,
 			trackBits,
+			el( 'button', { type: 'button', class: 'button', text: '↑', title: 'Move up', 'aria-label': 'Move up (tracks play in this order: the first is Track 1)', onclick: function () { move( task.materials, idx, -1 ); } } ),
+			el( 'button', { type: 'button', class: 'button', text: '↓', title: 'Move down', 'aria-label': 'Move down', onclick: function () { move( task.materials, idx, 1 ); } } ),
 			el( 'button', { type: 'button', class: 'button-link anpr-remove', text: 'Remove', onclick: function () {
 				task.materials.splice( idx, 1 );
 				markDirty();
@@ -217,7 +219,7 @@
 			markDirty();
 			render();
 		} } );
-		return el( 'div', { class: 'anpr-attach' }, [ sel, add, el( 'span', { class: 'description', text: ' ♪ = can play in the practice player' } ) ] );
+		return el( 'div', { class: 'anpr-attach' }, [ sel, add, el( 'span', { class: 'description', text: ' ♪ = can play in the practice player. Practice tracks load in this order — put the main practice recording first so it is Track 1.' } ) ] );
 	}
 
 	function taskCard( week, task, ti ) {

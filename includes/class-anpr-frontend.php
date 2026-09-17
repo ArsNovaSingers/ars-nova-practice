@@ -87,6 +87,12 @@ class ANPR_Frontend {
 						'left'        => __( 'Left', 'ars-nova-practice' ),
 						'both'        => __( 'Both', 'ars-nova-practice' ),
 						'right'       => __( 'Right', 'ars-nova-practice' ),
+						/* translators: %s: number */
+						'track'       => __( 'Track %s', 'ars-nova-practice' ),
+						/* translators: %s: number */
+						'take'        => __( 'Take %s', 'ars-nova-practice' ),
+						'trackFailed' => __( 'This track could not be loaded.', 'ars-nova-practice' ),
+						'loadFailed'  => __( 'A track could not be loaded. Try again, or open it from Program Materials.', 'ars-nova-practice' ),
 					),
 				),
 			)
@@ -200,7 +206,11 @@ class ANPR_Frontend {
 				$tracks[] = array(
 					'id'    => $rid,
 					'title' => $title,
-					'src'   => ANSP_Player::play_url( $project_id, (string) $row['id'] ),
+					// wp_nonce_url() returns an HTML-escaped URL (&amp;). This one goes
+					// into JSON for JavaScript, which needs plain &, or every parameter
+					// after the first is misread and the Hub answers 403. Staging
+					// 2026-09-17: no practice track loaded at all.
+					'src'   => str_replace( '&amp;', '&', ANSP_Player::play_url( $project_id, (string) $row['id'] ) ),
 					'part'  => $m['part'],
 					'pan'   => $m['pan'],
 					'muted' => (bool) $m['muted'],
