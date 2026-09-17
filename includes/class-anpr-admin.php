@@ -433,7 +433,7 @@ class ANPR_Admin {
 		?>
 		<div class="anpr-cards">
 			<div class="anpr-card"><span class="anpr-card-num"><?php echo esc_html( $opened . ' / ' . $n ); ?></span><?php esc_html_e( 'opened this week', 'ars-nova-practice' ); ?></div>
-			<div class="anpr-card"><span class="anpr-card-num"><?php echo esc_html( $all_done . ' / ' . $n ); ?></span><?php esc_html_e( 'ticked every task', 'ars-nova-practice' ); ?></div>
+			<div class="anpr-card"><span class="anpr-card-num"><?php echo esc_html( $all_done . ' / ' . $n ); ?></span><?php esc_html_e( 'marked every task done', 'ars-nova-practice' ); ?></div>
 			<div class="anpr-card"><span class="anpr-card-num"><?php echo esc_html( (string) count( $struggles ) ); ?></span><?php esc_html_e( 'tasks rated "Bad"', 'ars-nova-practice' ); ?></div>
 		</div>
 
@@ -538,7 +538,7 @@ class ANPR_Admin {
 			</tbody>
 		</table>
 		</div>
-		<p class="description"><?php esc_html_e( '"▶" counts a play when a singer listened for at least 20 seconds in one sitting. Ticks and ratings are what the singer chose; they are not checked.', 'ars-nova-practice' ); ?></p>
+		<p class="description"><?php esc_html_e( '"▶" counts a play when a singer listened for at least 20 seconds in one sitting. Done marks and ratings are what the singer chose; they are not checked.', 'ars-nova-practice' ); ?></p>
 		</div>
 		<?php
 	}

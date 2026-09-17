@@ -155,9 +155,11 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 							data-anpr-project="<?php echo esc_attr( (string) $project_id ); ?>">
 							<div class="anpr-task-head">
 								<label class="anpr-done">
-									<input type="checkbox" data-anpr-done <?php checked( $is_done ); ?>>
-									<span class="anpr-done-box" aria-hidden="true"></span>
-									<span class="anpr-sr"><?php echo esc_html( sprintf( /* translators: %s: task title */ __( 'Mark "%s" done', 'ars-nova-practice' ), $task['title'] ) ); ?></span>
+									<input type="checkbox" role="switch" data-anpr-done <?php checked( $is_done ); ?>>
+									<span class="anpr-switch" aria-hidden="true"><span class="anpr-switch-knob"></span></span>
+									<span class="anpr-switch-text anpr-switch-off" aria-hidden="true"><?php esc_html_e( 'Not done', 'ars-nova-practice' ); ?></span>
+									<span class="anpr-switch-text anpr-switch-on" aria-hidden="true"><?php esc_html_e( 'Done', 'ars-nova-practice' ); ?></span>
+									<span class="anpr-sr"><?php echo esc_html( sprintf( /* translators: %s: task title */ __( 'Done: %s', 'ars-nova-practice' ), $task['title'] ) ); ?></span>
 								</label>
 								<div class="anpr-task-titles">
 									<h5 class="anpr-task-title">
@@ -265,7 +267,7 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 ?>
 <div class="anpr-page" data-anpr-page>
 	<p class="anpr-privacy">
-		<?php esc_html_e( 'Tick each task when it is done and say how it is going. Tom, Zahnay and the site admins can see your ticks, your ratings and how often you play the practice tracks.', 'ars-nova-practice' ); ?>
+		<?php esc_html_e( 'Flip each task from Not done to Done when you have finished it, and say how it is going. Tom, Zahnay and the site admins can see which tasks you marked done, your ratings and how often you play the practice tracks.', 'ars-nova-practice' ); ?>
 	</p>
 
 	<?php foreach ( $anpr_data['projects'] as $anpr_block ) : ?>

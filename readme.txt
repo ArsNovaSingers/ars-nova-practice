@@ -4,7 +4,7 @@ Tags: choir, practice, assignments, rehearsal
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.3.1
+Stable tag: 0.3.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,7 +15,7 @@ Weekly practice assignments for the Ars Nova Singers Hub. Add-on for the Ars Nov
 **For singers** — "This Week's Assignments" on the Singers Hub becomes a week-by-week homework page:
 
 * This week's tasks first, with "have ready by" and the director's note; earlier and upcoming weeks folded away.
-* Each task: a Done tick, a Bad · Fair · Good · Great slider, the score/link buttons, and a **practice player**.
+* Each task: a Not done / Done switch, a Bad · Fair · Good · Great slider, the score/link buttons, and a **practice player**.
 * Each practice track opens in its own player: green Play, red Record and black Stop side by side, Mute / Solo / Volume / Pan on the track, zoom, and takes recorded underneath that can be selected and deleted.
 * A task can carry one track per voice part; each singer gets their own part's track.
 * Optional **recording test**: record takes over the track with wired headphones (the page records the microphone only), hear them back, delete and retry, and download one. Nothing is uploaded in this version. Off / staff only / everyone, under Practice → Settings (default: staff only).
@@ -34,6 +34,9 @@ Drafts are shown to staff on the Hub page itself, so the Hub is the preview.
 The practice player is built on **@dawcore/components** from waveform-playlist by Naomi Aro (MIT License) — https://github.com/naomiaro/waveform-playlist. The built browser bundle is in `assets/player/`, with every bundled licence in `assets/player/THIRD-PARTY-LICENSES.txt` (MIT and BSD-3-Clause, plus waveform-data under LGPL-3.0). Its source, exact versions and build script are in the repository's `player-src/` folder, so the bundle can be rebuilt with any of those libraries replaced.
 
 == Changelog ==
+
+= 0.3.2 =
+* **Done is now a switch, not a bare checkbox** (Jonathan, 2026-09-17: it was not clear what the boxes were for). Each task shows a red "Not done" switch at the right of its title; tapping it turns it green with "✓ Done". The page intro and the Progress report say "marked done" instead of "ticked".
 
 = 0.3.1 =
 * **Takes are recorded in mono.** A microphone that reports two channels made the take track twice as tall as the music (Jonathan, 2026-09-17); the recorder now always mixes the microphone down to one channel, and the downloaded .wav is mono.

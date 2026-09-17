@@ -121,44 +121,78 @@
 .anpr-task-num { color: var(--anpr-muted); font-weight: 400; margin-right: 0.15em; }
 .anpr-task-meta { margin: 0.15rem 0 0; font-size: 0.85em; color: var(--anpr-muted); }
 .anpr-task.is-done .anpr-task-title { color: var(--anpr-done); }
-.anpr-task-detail { margin: 0.5rem 0 0 2.75rem; }
+.anpr-task-detail { margin: 0.5rem 0 0; }
 .anpr-task-detail p { margin: 0 0 0.4rem; }
 
-.anpr-done { position: relative; flex: 0 0 auto; cursor: pointer; }
+/* Done switch (Jonathan, 2026-09-17: the bare checkbox was unclear). Starts
+   red "Not done"; flips to green "Done". Sits at the right of the task title. */
+.anpr-task-head .anpr-task-titles { flex: 1 1 auto; }
+.anpr-done {
+	--anpr-no: #c62828;
+	position: relative;
+	flex: 0 0 auto;
+	order: 2;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	min-height: 2.5rem;
+	margin: 0;
+	padding: 0.3rem 0.8rem 0.3rem 0.35rem;
+	border: 2px solid var(--anpr-no);
+	border-radius: 999px;
+	background: #fdecec;
+	color: var(--anpr-no);
+	font-weight: 700;
+	font-size: 0.95em;
+	line-height: 1;
+	white-space: nowrap;
+	cursor: pointer;
+	user-select: none;
+	-webkit-user-select: none;
+}
 .anpr-done input {
 	position: absolute;
-	opacity: 0;
-	width: 2rem; height: 2rem;
+	inset: 0;
+	width: 100%;
+	height: 100%;
 	margin: 0;
+	opacity: 0;
 	cursor: pointer;
 }
-.anpr-done-box {
+.anpr-switch {
+	position: relative;
 	display: block;
-	width: 2rem;
-	height: 2rem;
-	border: 2px solid var(--anpr-border);
-	border-radius: 8px;
+	flex: 0 0 auto;
+	width: 2.75rem;
+	height: 1.6rem;
+	border-radius: 999px;
+	background: var(--anpr-no);
+	transition: background-color 0.15s ease;
+}
+.anpr-switch-knob {
+	position: absolute;
+	top: 0.2rem;
+	left: 0.2rem;
+	width: 1.2rem;
+	height: 1.2rem;
+	border-radius: 50%;
 	background: #fff;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+	transition: transform 0.15s ease;
 }
-.anpr-done input:focus-visible + .anpr-done-box { outline: 3px solid var(--anpr-accent); outline-offset: 2px; }
-.anpr-done input:checked + .anpr-done-box {
-	background: var(--anpr-done);
-	border-color: var(--anpr-done);
-}
-.anpr-done input:checked + .anpr-done-box::after {
-	content: "";
-	display: block;
-	width: 0.55rem;
-	height: 1rem;
-	margin: 0.25rem auto 0;
-	border: solid #fff;
-	border-width: 0 3px 3px 0;
-	transform: rotate(45deg);
-}
+.anpr-switch-on { display: none; }
+.anpr-done input:checked ~ .anpr-switch { background: var(--anpr-done); }
+.anpr-done input:checked ~ .anpr-switch .anpr-switch-knob { transform: translateX(1.15rem); }
+.anpr-done input:checked ~ .anpr-switch-off { display: none; }
+.anpr-done input:checked ~ .anpr-switch-on { display: inline; }
+.anpr-done input:checked ~ .anpr-switch-on::before { content: "\2713\00a0"; }
+.anpr-task.is-done .anpr-done { border-color: var(--anpr-done); background: #e8f5ee; color: var(--anpr-done); }
+.anpr-done:has(input:focus-visible) { outline: 3px solid var(--anpr-accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .anpr-switch, .anpr-switch-knob { transition: none; } }
 
 .anpr-task-links,
 .anpr-practice,
-.anpr-rating { margin: 0.6rem 0 0 2.75rem; }
+.anpr-rating { margin: 0.6rem 0 0; }
 .anpr-task-links { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 
 .anpr-btn {
@@ -209,7 +243,7 @@
 .anpr-rating-out { display: block; margin-top: 0.15rem; font-size: 0.85em; font-weight: 600; }
 .anpr-rating.is-unrated .anpr-rating-out { font-weight: 400; color: var(--anpr-muted); }
 
-.anpr-task-error { margin: 0.5rem 0 0 2.75rem; color: #a4231b; font-size: 0.9em; }
+.anpr-task-error { margin: 0.5rem 0 0; color: #a4231b; font-size: 0.9em; }
 .anpr-empty { color: var(--anpr-muted); }
 
 /* ---------- earlier / coming up ---------- */
