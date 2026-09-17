@@ -19,6 +19,8 @@
  * ours (the library's <daw-track-controls> render() is replaced for players
  * made here), as are the transport, zoom and take handling.
  *
+ * The take is always recorded in mono.
+ *
  * The browser records the MICROPHONE ONLY — never what the page is playing —
  * so with headphones the take is the voice alone. Nothing is uploaded in this
  * version: the take can be played back and downloaded as .wav.
@@ -626,9 +628,17 @@ export function mountPlayer(host, opts = {}) {
 			onError(S.micDenied, err);
 			return false;
 		}
-		editor.recordingStream = stream;
 		const tr = stream.getAudioTracks()[0];
 		const settings = tr && tr.getSettings ? tr.getSettings() : {};
+		// Always record a MONO take (Jonathan, 2026-09-17: a stereo take drew
+		// twice as tall as the music). Many mics report two channels even when
+		// asked for one; the recorder sizes itself from getSettings().channelCount,
+		// so report 1 and the recording node mixes left + right down to one.
+		if (tr && tr.getSettings) {
+			const real = tr.getSettings.bind(tr);
+			tr.getSettings = () => Object.assign({}, real(), { channelCount: 1 });
+		}
+		editor.recordingStream = stream;
 		const input = typeof settings.latency === 'number' ? settings.latency : 0;
 		measured = (ctx.baseLatency || 0) + (ctx.outputLatency || 0) + input;
 		if (latencyOut) latencyOut.textContent = '(' + S.latency.replace('%s', String(Math.round(measured * 1000))) + ')';
@@ -692,6 +702,7 @@ export function mountPlayer(host, opts = {}) {
 				overdub: true,
 				latencyOffset: offset,
 				clipName: S.myTake,
+				channelCount: 1,
 			});
 			if (editor.isRecording) {
 				recording = true;
