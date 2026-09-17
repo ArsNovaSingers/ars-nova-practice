@@ -78,7 +78,6 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 		$avg = $rated ? (int) round( array_sum( $rated ) / count( $rated ) ) : null;
 		$total = count( $tasks );
 		$due   = ANPR_Frontend::date_label( $week['due_date'] );
-		$pct   = $total ? round( 100 * $done / $total ) : 0;
 		?>
 		<article class="anpr-week<?php echo $current ? ' is-current' : ''; ?>"
 			data-anpr-week="<?php echo esc_attr( $week['id'] ); ?>"
@@ -237,10 +236,17 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 									<div class="anpr-task-links">
 										<?php foreach ( $mats['links'] as $link ) : ?>
 											<span class="anpr-openfile">
-												<a class="anpr-btn anpr-btn--quiet" href="<?php echo esc_url( $link['url'] ); ?>" target="_blank" rel="noopener noreferrer" data-anpr-open="<?php echo esc_attr( $link['id'] ); ?>">
-													<?php echo esc_html( 'sheet_music' === $link['type'] ? __( 'Open score PDF', 'ars-nova-practice' ) : __( 'Open file', 'ars-nova-practice' ) ); ?>
-												</a>
+												<?php if ( empty( $link['pending'] ) ) : ?>
+													<a class="anpr-btn anpr-btn--quiet" href="<?php echo esc_url( $link['url'] ); ?>" target="_blank" rel="noopener noreferrer" data-anpr-open="<?php echo esc_attr( $link['id'] ); ?>">
+														<?php echo esc_html( 'sheet_music' === $link['type'] ? __( 'Open score PDF', 'ars-nova-practice' ) : __( 'Open file', 'ars-nova-practice' ) ); ?>
+													</a>
+												<?php else : ?>
+													<span class="anpr-btn anpr-btn--quiet is-pending" aria-disabled="true"><?php esc_html_e( 'Score not ready', 'ars-nova-practice' ); ?></span>
+												<?php endif; ?>
 												<span class="anpr-openfile-name" title="<?php echo esc_attr( $link['title'] ); ?>"><?php echo esc_html( $link['title'] ); ?></span>
+												<?php if ( ! empty( $link['pending'] ) ) : ?>
+													<span class="anpr-openfile-note"><?php esc_html_e( 'The link is still being prepared. Reload the page in a moment.', 'ars-nova-practice' ); ?></span>
+												<?php endif; ?>
 											</span>
 										<?php endforeach; ?>
 									</div>

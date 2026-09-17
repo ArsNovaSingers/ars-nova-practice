@@ -300,15 +300,20 @@ class ANPR_Frontend {
 					'muted'       => (bool) $m['muted'],
 				);
 			} else {
-				$url = isset( $row['url'] ) ? (string) $row['url'] : '';
-				if ( '' === $url ) {
-					continue;
-				}
+				/*
+				 * A material that resolves but has no URL yet (the Hub's score index
+				 * warming after a deploy, say) used to be dropped in silence, so the
+				 * score button simply vanished from the task with nothing to explain
+				 * it. Staging saw exactly that once on 2026-09-17, on the first page
+				 * render after an install. Keep the row and let the page say the link
+				 * is not ready rather than pretend the score does not exist.
+				 */
 				$links[] = array(
-					'id'    => $rid,
-					'title' => $title,
-					'url'   => $url,
-					'type'  => isset( $row['type'] ) ? (string) $row['type'] : '',
+					'id'      => $rid,
+					'title'   => $title,
+					'url'     => isset( $row['url'] ) ? (string) $row['url'] : '',
+					'type'    => isset( $row['type'] ) ? (string) $row['type'] : '',
+					'pending' => '' === ( isset( $row['url'] ) ? (string) $row['url'] : '' ),
 				);
 			}
 		}

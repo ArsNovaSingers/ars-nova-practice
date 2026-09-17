@@ -4,7 +4,7 @@ Tags: choir, practice, assignments, rehearsal
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.6.0
+Stable tag: 0.6.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,6 +34,10 @@ Drafts are shown to staff on the Hub page itself, so the Hub is the preview.
 The practice player is built on **@dawcore/components** from waveform-playlist by Naomi Aro (MIT License) — https://github.com/naomiaro/waveform-playlist. The built browser bundle is in `assets/player/`, with every bundled licence in `assets/player/THIRD-PARTY-LICENSES.txt` (MIT and BSD-3-Clause, plus waveform-data under LGPL-3.0). Its source, exact versions and build script are in the repository's `player-src/` folder, so the bundle can be rebuilt with any of those libraries replaced.
 
 == Changelog ==
+
+= 0.6.1 =
+* Fixed a PHP warning on every week (`Undefined variable $done`) — a leftover line from the 0.5.0 progress bar that 0.6.0 replaced with the confidence average.
+* A score or link whose URL is not ready yet is now shown as “Score not ready” with the file name and a line saying to reload, instead of disappearing from the task with no explanation. Staging saw a score button vanish once, on the first page render after an install; the material was there, its URL was not, and the page said nothing.
 
 = 0.6.0 =
 One slider instead of Done (Jonathan, 2026-09-17).
