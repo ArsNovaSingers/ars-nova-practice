@@ -151,10 +151,38 @@
 }
 .anpr-task.is-open .anpr-chev { transform: rotate(45deg); }
 .anpr-task-body { margin: 0.2rem 0 0.6rem; }
+/*
+ * The score, as Jonathan asked for it in 0.5.0: a small button justified right
+ * with the file name in small black text under it, "small only to confirm what
+ * it is". Most singers will not open it. It was too faint to find on staging
+ * (0.8.3): the label was 75% opacity and the file name was truncated mid-title
+ * by an ellipsis, so it read as stray grey text rather than a button.
+ */
 .anpr-task-links { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: flex-end; margin: -0.2rem 0 0.4rem; }
-.anpr-openfile { display: grid; justify-items: end; gap: 0.1rem; max-width: 16rem; }
-.anpr-btn--quiet { min-height: 1.9rem; padding: 0.2rem 0.6rem; font-size: 0.8em; }
-.anpr-openfile-name { font-size: 0.7em; color: #1d2433; opacity: 0.75; max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.anpr-openfile { display: grid; justify-items: end; gap: 0.15rem; max-width: 18rem; }
+.anpr-btn--quiet {
+	min-height: 2rem;
+	padding: 0.3rem 0.75rem;
+	font-size: 0.85em;
+	font-weight: 600;
+	color: #1d2433;
+	background: var(--anpr-soft);
+	border-color: #c4cad6;
+}
+.anpr-page .anpr-btn--quiet:hover { background: #fff; border-color: var(--anpr-accent); }
+.anpr-openfile-name {
+	font-size: 0.72em;
+	line-height: 1.3;
+	color: #1d2433;
+	max-width: 18rem;
+	text-align: right;
+	/* Two lines, then ellipsis - a title cut off at "Rivers, Op. 104 (2020), fo…"
+	   confirms nothing, which is the whole job of this line. */
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
 .anpr-page .anpr-btn--quiet.is-pending { opacity: 0.55; cursor: default; }
 .anpr-openfile-note { display: block; font-size: 0.78rem; color: var(--anpr-muted); max-width: 16rem; margin-left: auto; text-align: right; }
 .anpr-task-titles { display: grid; gap: 0.1rem; min-width: 0; }
@@ -237,10 +265,8 @@
 .anpr-stat--going .anpr-stat-value { color: hsl(min(calc(var(--anpr-conf) * 1.15), 130), 72%, 38%); }
 .anpr-stat--going .anpr-bar-fill { background: hsl(min(calc(var(--anpr-conf) * 1.15), 130), 72%, 38%); }
 
-.anpr-task-links,
 .anpr-practice,
 .anpr-rating { margin: 0.6rem 0 0; }
-.anpr-task-links { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 
 .anpr-btn {
 	display: inline-flex;
@@ -535,7 +561,6 @@
 
 @media (max-width: 600px) {
 	.anpr-task-detail,
-	.anpr-task-links,
 	.anpr-practice,
 	.anpr-rating,
 	.anpr-task-error { margin-left: 0; }
@@ -548,6 +573,9 @@
 	.anpr-task-head { flex-wrap: wrap; }
 	.anpr-conf { width: 100%; max-width: 100%; margin-left: auto; }
 	.anpr-openfile, .anpr-openfile-name { max-width: 100%; }
+	.anpr-task-links { justify-content: flex-start; }
+	.anpr-openfile { justify-items: start; }
+	.anpr-openfile-name { text-align: left; }
 	.anpr-player { padding: 0.5rem; }
 	.anpr-player-bar { grid-template-columns: auto 1fr; padding: 0.5rem; }
 	.anpr-player-bar .anpr-transport { justify-self: end; }

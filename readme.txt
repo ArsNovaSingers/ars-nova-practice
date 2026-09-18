@@ -4,7 +4,7 @@ Tags: choir, practice, assignments, rehearsal
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.8.2
+Stable tag: 0.8.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -35,6 +35,11 @@ Drafts are shown to staff on the Hub page itself, so the Hub is the preview.
 The practice player is built on **@dawcore/components** from waveform-playlist by Naomi Aro (MIT License) — https://github.com/naomiaro/waveform-playlist. The built browser bundle is in `assets/player/`, with every bundled licence in `assets/player/THIRD-PARTY-LICENSES.txt` (MIT and BSD-3-Clause, plus waveform-data under LGPL-3.0). Its source, exact versions and build script are in the repository's `player-src/` folder, so the bundle can be rebuilt with any of those libraries replaced.
 
 == Changelog ==
+
+= 0.8.3 =
+* **The “Open score PDF” button is findable again.** It was on the page but read as stray grey text: the label sat at 75% opacity and the file name was cut off mid-title by an ellipsis (“Rivers, Op. 104 (2020), fo…”), which confirms nothing — the one job that line has. The button now has a tinted face and a darker border, and the file name is black and wraps to two lines. Still small, still right-justified, still peripheral, as asked for in 0.5.0.
+* On a phone the score block aligns left with the rest of the task instead of hugging the right edge.
+* Removed a duplicate `.anpr-task-links` rule that silently reset the block's own spacing.
 
 = 0.8.2 =
 * **The A+ example lanes actually reach the player.** 0.8.0 rendered them into the page correctly and then `assets/practice.js` threw them away one line before building the player, because it had picked a single track by index since 0.5.0. The page, the tests and the server were all right; the singer saw two lanes instead of three. Caught in Chrome on staging, not by the suite — an assertion has been added.
