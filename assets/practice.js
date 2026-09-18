@@ -384,10 +384,20 @@
 		} catch ( err ) {
 			tracks = [];
 		}
-		var track = tracks[ Number( item.getAttribute( 'data-anpr-track-index' ) ) ];
+		var idx = Number( item.getAttribute( 'data-anpr-track-index' ) ) || 0;
+		var track = tracks[ idx ];
 		if ( ! track ) {
 			return;
 		}
+		/*
+		 * The lane list is the practice track followed by this task's A+ examples
+		 * (0.8.0). Everything but the practice track was dropped here until 0.8.2,
+		 * so the examples were rendered into the page and then thrown away one line
+		 * before the player was built. Takes still belong to `track` alone.
+		 */
+		var lanes = [ track ].concat(
+			tracks.filter( function ( t, i ) { return i !== idx && t && t.example; } ).slice( 0, 2 )
+		);
 		closePlayer( false );
 		var state = { task: task, host: host, material: track.id || '', ctrl: null, listened: 0, counted: false, pending: 0 };
 		open = state;
@@ -421,7 +431,7 @@
 				},
 			} : null;
 			state.ctrl = mod.mountPlayer( host, {
-				tracks: [ track ],
+				tracks: lanes,
 				takes: takes,
 				recording: !! C.recording,
 				strings: T.player || {},
