@@ -4,7 +4,7 @@ Tags: choir, practice, assignments, rehearsal
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.8.3
+Stable tag: 0.8.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -35,6 +35,9 @@ Drafts are shown to staff on the Hub page itself, so the Hub is the preview.
 The practice player is built on **@dawcore/components** from waveform-playlist by Naomi Aro (MIT License) — https://github.com/naomiaro/waveform-playlist. The built browser bundle is in `assets/player/`, with every bundled licence in `assets/player/THIRD-PARTY-LICENSES.txt` (MIT and BSD-3-Clause, plus waveform-data under LGPL-3.0). Its source, exact versions and build script are in the repository's `player-src/` folder, so the bundle can be rebuilt with any of those libraries replaced.
 
 == Changelog ==
+
+= 0.8.4 =
+* The 0.8.3 button styling never actually applied — `.anpr-btn` is defined further down the stylesheet and won on source order, so the button kept its plain white face while only the file-name fix showed. Scoped the override so it wins. (The file name was the half that mattered and it did land, which is why 0.8.3 looked half-fixed rather than broken.)
 
 = 0.8.3 =
 * **The “Open score PDF” button is findable again.** It was on the page but read as stray grey text: the label sat at 75% opacity and the file name was cut off mid-title by an ellipsis (“Rivers, Op. 104 (2020), fo…”), which confirms nothing — the one job that line has. The button now has a tinted face and a darker border, and the file name is black and wraps to two lines. Still small, still right-justified, still peripheral, as asked for in 0.5.0.
