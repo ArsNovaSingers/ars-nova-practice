@@ -4,7 +4,7 @@ Tags: choir, practice, assignments, rehearsal
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.7.1
+Stable tag: 0.8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,7 +18,7 @@ Weekly practice assignments for the Ars Nova Singers Hub. Add-on for the Ars Nov
 * A letter grade and a “How it is going” score at the top of the week, averaged over every task — one not started counts as a zero.
 * Each task: one “How is this going?” slider from 0 to 111%, red through yellow to green, with a sentence that grows in confidence; saved practice takes (see 0.4.0); the score/link buttons; and a **practice player**.
 * Each practice track opens in its own player: green Play, red Record and black Stop side by side, Mute / Solo / Volume / Pan on the track, zoom, and takes recorded underneath that can be selected and deleted.
-* A task can carry one track per voice part; each singer gets their own part's track.
+* A task carries one practice track, plus up to two A+ example recordings on their own muted lanes, and can carry a note from the director in Tom's own words.
 * Optional **recording test**: record takes over the track with wired headphones (the page records the microphone only), hear them back, delete and retry, and download one. Nothing is uploaded in this version. Off / staff only / everyone, under Practice → Settings (default: staff only).
 
 **For Tom and Zahnay** — wp-admin → Practice:
@@ -35,6 +35,13 @@ Drafts are shown to staff on the Hub page itself, so the Hub is the preview.
 The practice player is built on **@dawcore/components** from waveform-playlist by Naomi Aro (MIT License) — https://github.com/naomiaro/waveform-playlist. The built browser bundle is in `assets/player/`, with every bundled licence in `assets/player/THIRD-PARTY-LICENSES.txt` (MIT and BSD-3-Clause, plus waveform-data under LGPL-3.0). Its source, exact versions and build script are in the repository's `player-src/` folder, so the bundle can be rebuilt with any of those libraries replaced.
 
 == Changelog ==
+
+= 0.8.0 =
+Tom's own space on a task, and an A+ example to sing against (Jonathan, 2026-09-18).
+* **A note from the director on any task.** Beside “Details” (what to do) there is now a free-text note shown in the same “From the director” box the week already uses — as much or as little as Tom wants, on every task.
+* **A+ example tracks.** A task can carry up to **two** example recordings beside its practice track: extra lanes in the player with their own M / S / volume / pan, **starting muted**, so a singer can unmute one and hear how the line should sound. Tom attaches them from the concert's own materials, exactly like a practice track, and chooses “A+ example” in the weekly builder.
+* **An example is never mixed into a saved take.** The mixdown reads the practice track and the singer's own lane only, muted or not, so a take featured on a bio is the singer's own singing. A take cannot be started against an example either.
+* Lanes are numbered in order: 1 the practice track, then each A+ example, then the singer's take.
 
 = 0.7.1 =
 * **“Needs attention” is readable again.** Counting an unstarted task as a zero (0.7.0) also dropped every unstarted task onto that list — 116 lines on staging the moment a week was published, which is every singer times every task. It now lists only singers who have worked at a task and put it at 25% or under; who has started nothing is a folded one-line list underneath, and a card counts them.

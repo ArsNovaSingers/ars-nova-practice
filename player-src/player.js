@@ -34,7 +34,10 @@
  * player and rename / play / download / delete buttons.
  *
  * mountPlayer(host, opts) returns { destroy(), editor }.
- *   opts.tracks     [{ title, src, part, pan: 'left'|'center'|'right', muted }]
+ *   opts.tracks     [{ title, src, part, pan: 'left'|'center'|'right', muted, example }]
+ *                   The first non-example entry is the practice track; entries
+ *                   flagged `example` become extra lanes that start muted and are
+ *                   never mixed into a saved take.
  *                   (the first one is used)
  *   opts.recording  boolean — offer Track 2 and the Record button
  *   opts.strings    UI text (all optional; English defaults below)
@@ -97,7 +100,9 @@ const DEFAULT_STRINGS = {
 	uploading: 'Uploading…',
 	saveFailed: 'The take could not be saved: %s',
 	limitReached: 'You have %s saved takes for this piece. Delete one to save another.',
-	allMuted: 'Both tracks are muted, so there is nothing to save. Unmute one first.',
+	allMuted: 'The practice track and your take are both muted, so there is nothing to save. Unmute one first.',
+	example: 'A+ example',
+	exampleTag: 'A+',
 	takeSilent: 'Your take is silent. Check the microphone and record again.',
 	tooBig: 'This take is too long to save.',
 	takesTitle: 'My saved takes',
@@ -281,6 +286,7 @@ const HEADER_CSS = `
 .ah{display:flex;align-items:center;gap:6px;margin-bottom:4px;min-width:0}
 .an{flex:0 0 auto;font:700 10px/16px system-ui,sans-serif;color:#1d2433;background:#8d9ab3;border-radius:3px;padding:0 5px}
 .an.take{background:#ff8a80}
+.an.example{background:#8ad6a0}
 .at{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 12px/16px system-ui,sans-serif;color:#e8eef9}
 .ar{display:flex;align-items:flex-start;gap:6px}
 .ab{display:flex;gap:3px;padding-top:4px}
@@ -385,7 +391,12 @@ function toWav(buffer, skip = 0) {
 export function mountPlayer(host, opts = {}) {
 	installHeaderRenderer();
 	const S = Object.assign({}, DEFAULT_STRINGS, opts.strings || {});
-	const practice = (Array.isArray(opts.tracks) ? opts.tracks : [])[0] || {};
+	const laneDefs = Array.isArray(opts.tracks) ? opts.tracks : [];
+	const practice = laneDefs.find((t) => t && !t.example) || laneDefs[0] || {};
+	// A+ examples Tom attached (0.8.0). They are ordinary lanes to listen against
+	// and are never part of a saved take - renderMix() only ever reads the
+	// practice track and the singer's own lane.
+	const examples = laneDefs.filter((t) => t && t.example && t !== practice).slice(0, 2);
 	const onListen = typeof opts.onListen === 'function' ? opts.onListen : () => {};
 	const onRecorded = typeof opts.onRecorded === 'function' ? opts.onRecorded : () => {};
 	const onError = typeof opts.onError === 'function' ? opts.onError : () => {};
@@ -416,7 +427,18 @@ export function mountPlayer(host, opts = {}) {
 	practiceEl.pan = pan0;
 	editor.append(practiceEl);
 
-	// Track 2: the take lane. One take at a time; recording again replaces it.
+	// The A+ example lanes sit between the practice track and the singer's own.
+	// They start muted: the singer presses M when they want to hear the model.
+	const exampleEls = examples.map((ex) => {
+		const p = PAN[ex.pan] !== undefined ? PAN[ex.pan] : 0;
+		const t = el('daw-track', { src: ex.src, name: ex.title || S.example, muted: true });
+		t.volume = 1;
+		t.pan = p;
+		editor.append(t);
+		return t;
+	});
+
+	// The last lane: the take. One take at a time; recording again replaces it.
 	const take = { el: null, id: null, hasClip: false, buffer: null, offset: 0, url: '', armed: true, volume: 1, pan: 0, muted: false, soloed: false, selected: false, savedId: null };
 	function makeTakeLane() {
 		const t = el('daw-track', { name: S.myTake, muted: take.muted, soloed: take.soloed });
@@ -516,13 +538,16 @@ export function mountPlayer(host, opts = {}) {
 	// ---------- header renderer ----------
 	editor.anpr = {
 		header(c) {
+			// Lane order: 1 practice track, then each A+ example, then the take.
 			const isTake = canRecord && c.trackId === take.id;
-			const n = isTake ? 2 : 1;
+			const exAt = exampleEls.findIndex((t) => t.trackId === c.trackId);
+			const ex = exAt >= 0;
+			const n = isTake ? 2 + exampleEls.length : (ex ? 2 + exAt : 1);
 			const control = (prop, value) => c._dispatchControl(prop, value);
 			return html`
 				<div class="ah">
-					<span class="an ${isTake ? 'take' : ''}">${n}</span>
-					<span class="at" title=${c.trackName}>${c.trackName}</span>
+					<span class="an ${isTake ? 'take' : ''} ${ex ? 'example' : ''}">${n}</span>
+					<span class="at" title=${c.trackName}>${ex ? S.exampleTag + ' · ' : ''}${c.trackName}</span>
 				</div>
 				<div class="ar">
 					<div class="ab">

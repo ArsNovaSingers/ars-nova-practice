@@ -21,6 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class ANPR_Frontend {
 
+	/** A+ example recordings Tom may attach beside a task's practice track (0.8.0). */
+	const MAX_EXAMPLES = 2;
+
 	/** Cache of per-tab data, keyed by group slug. */
 	protected static $data = array();
 
@@ -98,6 +101,8 @@ class ANPR_Frontend {
 					/* translators: %d: minutes */
 					'minLabel'   => __( '%d min', 'ars-nova-practice' ),
 					'player'     => array(
+						'example'        => __( 'A+ example', 'ars-nova-practice' ),
+						'exampleTag'     => __( 'A+', 'ars-nova-practice' ),
 						'play'           => __( 'Play', 'ars-nova-practice' ),
 						'pause'          => __( 'Pause', 'ars-nova-practice' ),
 						'record'         => __( 'Record', 'ars-nova-practice' ),
@@ -272,8 +277,9 @@ class ANPR_Frontend {
 	 * @return array { links: [], tracks: [] }
 	 */
 	public static function task_materials( $task, $materials, $project_id, $parts, $is_manager ) {
-		$links  = array();
-		$tracks = array();
+		$links    = array();
+		$tracks   = array();
+		$examples = array();
 		foreach ( $task['materials'] as $m ) {
 			$row = ANPR_Weeks::resolve_material( $m, $materials, $project_id );
 			if ( null === $row ) {
@@ -281,12 +287,12 @@ class ANPR_Frontend {
 			}
 			$rid   = sanitize_key( (string) $row['id'] );
 			$title = isset( $row['title'] ) ? (string) $row['title'] : '';
-			if ( 'track' === $m['role'] && ANPR_Weeks::is_track( $row ) ) {
+			if ( in_array( $m['role'], array( 'track', 'example' ), true ) && ANPR_Weeks::is_track( $row ) ) {
 				if ( '' !== $m['part'] && ! $is_manager && ! empty( $parts ) && ! in_array( $m['part'], $parts, true ) ) {
 					continue; // Another voice part's track.
 				}
-				$piece    = ANPR_Takes::piece_of( $row );
-				$tracks[] = array(
+				$piece = ANPR_Takes::piece_of( $row );
+				$lane  = array(
 					'id'          => $rid,
 					'title'       => $title,
 					'piece'       => $piece['key'],
@@ -300,6 +306,18 @@ class ANPR_Frontend {
 					'pan'         => $m['pan'],
 					'muted'       => (bool) $m['muted'],
 				);
+				if ( 'example' === $m['role'] ) {
+					/*
+					 * An A+ example (0.8.0, Jonathan): a model recording the singer
+					 * can play against. It starts muted so it never surprises anyone,
+					 * and `example` is what keeps it out of the saved-take mixdown.
+					 */
+					$lane['example'] = true;
+					$lane['muted']   = true;
+					$examples[]      = $lane;
+				} else {
+					$tracks[] = $lane;
+				}
 			} else {
 				/*
 				 * A material that resolves but has no URL yet (the Hub's score index
@@ -319,8 +337,10 @@ class ANPR_Frontend {
 			}
 		}
 		return array(
-			'links'  => $links,
-			'tracks' => $tracks,
+			'links'    => $links,
+			'tracks'   => $tracks,
+			// At most two, so the player stays readable on a phone.
+			'examples' => array_slice( $examples, 0, self::MAX_EXAMPLES ),
 		);
 	}
 

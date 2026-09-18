@@ -127,7 +127,7 @@
 	}
 
 	function newTask() {
-		return { id: rid( 't' ), title: '', detail: '', video: '', minutes: 10, parts: [], materials: [] };
+		return { id: rid( 't' ), title: '', detail: '', note: '', video: '', minutes: 10, parts: [], materials: [] };
 	}
 
 	function copyWeek( src ) {
@@ -148,12 +148,13 @@
 		var roleSel = el( 'select', { 'aria-label': 'How it is used' }, [
 			el( 'option', { value: 'open', text: 'Open (score / link)' } ),
 			info && info.playable ? el( 'option', { value: 'track', text: 'Practice track (plays in the player)' } ) : null,
+			info && info.playable ? el( 'option', { value: 'example', text: 'A+ example (extra lane, starts muted)' } ) : null,
 		] );
-		roleSel.value = m.role === 'track' && info && info.playable ? 'track' : 'open';
-		if ( info && info.playable && m.role !== 'track' && trackCount( task ) > 0 ) {
-			// Only one track per task: keep the extra one as an "open" link.
+		roleSel.value = info && info.playable && ( m.role === 'track' || m.role === 'example' ) ? m.role : 'open';
+		if ( info && info.playable && m.role !== 'track' && m.role !== 'example' && trackCount( task ) > 0 && exampleCount( task ) >= MAX_EXAMPLES ) {
+			// One practice track and at most two examples: anything else stays a link.
 			roleSel.disabled = true;
-			roleSel.title = 'This task already has a practice track. Give this one its own task.';
+			roleSel.title = 'This task already has its practice track and ' + MAX_EXAMPLES + ' A+ examples.';
 		}
 		roleSel.addEventListener( 'change', function () {
 			m.role = roleSel.value;
@@ -162,7 +163,7 @@
 		} );
 
 		var trackBits = null;
-		if ( m.role === 'track' ) {
+		if ( m.role === 'track' || m.role === 'example' ) {
 			var partSel = el( 'select', { 'aria-label': 'Voice part of this track' }, [ el( 'option', { value: '', text: 'For everyone' } ) ].concat(
 				parts.map( function ( p ) { return el( 'option', { value: p, text: 'Only ' + p + ' singers' } ); } )
 			) );
@@ -175,11 +176,16 @@
 			] );
 			panSel.value = m.pan || 'center';
 			bind( m, 'pan', panSel );
-			var mute = el( 'input', { type: 'checkbox', checked: !! m.muted } );
-			mute.addEventListener( 'change', function () { m.muted = mute.checked; markDirty(); } );
-			trackBits = el( 'span', { class: 'anpr-trackbits' }, [
-				partSel, panSel, el( 'label', {}, [ mute, ' starts muted' ] ),
-			] );
+			var muteBit = null;
+			if ( m.role === 'track' ) {
+				var mute = el( 'input', { type: 'checkbox', checked: !! m.muted } );
+				mute.addEventListener( 'change', function () { m.muted = mute.checked; markDirty(); } );
+				muteBit = el( 'label', {}, [ mute, ' starts muted' ] );
+			} else {
+				// An A+ example always starts muted - it is there to be reached for.
+				muteBit = el( 'span', { class: 'description', text: 'starts muted' } );
+			}
+			trackBits = el( 'span', { class: 'anpr-trackbits' }, [ partSel, panSel, muteBit ] );
 		}
 
 		return el( 'li', { class: 'anpr-mat' + ( info ? '' : ' is-missing' ) }, [
@@ -200,14 +206,21 @@
 		] );
 	}
 
-	/** A task is one practice track (Jonathan, 2026-09-17): its own accordion,
-	 *  its own Done and its own rating on the singer's page. */
+	/** A task is one practice track (Jonathan, 2026-09-17): its own accordion and
+	 *  its own "How is this going?" slider on the singer's page. Beside it, up to
+	 *  two A+ examples (0.8.0) - extra lanes to listen against, never recorded into
+	 *  a saved take. */
+	var MAX_EXAMPLES = 2;
 	function trackCount( task ) {
 		return task.materials.filter( function ( m ) { return m.role === 'track'; } ).length;
+	}
+	function exampleCount( task ) {
+		return task.materials.filter( function ( m ) { return m.role === 'example'; } ).length;
 	}
 
 	function attachControl( task ) {
 		var hasTrack = trackCount( task ) > 0;
+		var exFree   = exampleCount( task ) < MAX_EXAMPLES;
 		var sel = el( 'select', { 'aria-label': 'Attach a material' }, [ el( 'option', { value: '', text: 'Attach a score, link or recording…' } ) ] );
 		var groups = {};
 		materials.forEach( function ( m ) {
@@ -215,8 +228,8 @@
 			if ( used ) {
 				return;
 			}
-			if ( hasTrack && m.playable ) {
-				return; // one practice track per task
+			if ( hasTrack && ! exFree && m.playable ) {
+				return; // the track and both example slots are taken
 			}
 			var key = m.piece || 'Other materials';
 			if ( ! groups[ key ] ) {
@@ -230,7 +243,11 @@
 			if ( ! m ) {
 				return;
 			}
-			task.materials.push( { id: m.id, role: ( m.playable && ! hasTrack ) ? 'track' : 'open', part: '', pan: 'center', muted: false, title: m.title, piece: m.piece, type: m.type } );
+			var role = 'open';
+			if ( m.playable ) {
+				role = hasTrack ? ( exFree ? 'example' : 'open' ) : 'track';
+			}
+			task.materials.push( { id: m.id, role: role, part: '', pan: 'center', muted: 'example' === role, title: m.title, piece: m.piece, type: m.type } );
 			markDirty();
 			render();
 		} } );
@@ -238,7 +255,9 @@
 			sel,
 			add,
 			el( 'span', { class: 'description', text: hasTrack
-				? ' This task already has its practice track. Add a score or link here; for another track, make another task.'
+				? ( exFree
+					? ' This task has its practice track. Another ♪ recording is attached as an A+ example — an extra lane the singer can unmute to hear how it should sound. Up to ' + MAX_EXAMPLES + '.'
+					: ' This task already has its practice track and ' + MAX_EXAMPLES + ' A+ examples. Add a score or link here; for another practice track, make another task.' )
 				: ' ♪ = plays in the practice player. One practice track per task: the task opens straight into the recorder for that track.' } ),
 		] );
 	}
@@ -247,6 +266,7 @@
 		var title = bind( task, 'title', el( 'input', { type: 'text', class: 'regular-text', value: task.title || '', placeholder: 'e.g. Rivers mvt 1, bars 1–40: learn the notes' } ) );
 		var minutes = bind( task, 'minutes', el( 'input', { type: 'number', min: 0, max: 600, step: 5, class: 'small-text', value: task.minutes || 0 } ), function ( v ) { return parseInt( v, 10 ) || 0; } );
 		var detail = bind( task, 'detail', el( 'textarea', { rows: 2, class: 'large-text', value: task.detail || '', placeholder: 'What to do, pages or bars, what to listen for' } ) );
+		var note = bind( task, 'note', el( 'textarea', { rows: 3, class: 'large-text', value: task.note || '', placeholder: 'Your own words to the singers about this task — as much or as little as you like' } ) );
 
 		var partBoxes = el( 'span', { class: 'anpr-parts' }, parts.map( function ( p ) {
 			var cb = el( 'input', { type: 'checkbox', checked: ( task.parts || [] ).indexOf( p ) !== -1 } );
@@ -278,6 +298,7 @@
 				] ),
 			] ),
 			field( 'Details', detail ),
+			field( 'Note from the director (optional)', note ),
 			field( 'Video link (optional)', bind( task, 'video', el( 'input', { type: 'url', class: 'regular-text', value: task.video || '', placeholder: 'https://www.youtube.com/watch?v=… (shown inside this task)' } ) ) ),
 			el( 'div', { class: 'anpr-field' }, [
 				el( 'span', { class: 'anpr-label', text: 'Who is this for? (none ticked = everyone)' } ),

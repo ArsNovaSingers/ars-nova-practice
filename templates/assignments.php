@@ -279,7 +279,17 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 									<div class="anpr-task-detail"><?php echo wp_kses_post( wpautop( esc_html( $task['detail'] ) ) ); ?></div>
 								<?php endif; ?>
 
-								<?php if ( ! empty( $mats['tracks'] ) ) : ?>
+								<?php if ( '' !== ( isset( $task['note'] ) ? $task['note'] : '' ) ) : ?>
+									<div class="anpr-note anpr-note--task">
+										<p class="anpr-note-label"><?php esc_html_e( 'From the director', 'ars-nova-practice' ); ?></p>
+										<?php echo wp_kses_post( wpautop( esc_html( $task['note'] ) ) ); ?>
+									</div>
+								<?php endif; ?>
+
+								<?php
+								$lanes = array_merge( array_slice( $mats['tracks'], 0, 1 ), $mats['examples'] );
+								if ( $lanes ) :
+									?>
 									<div class="anpr-practice">
 										<?php
 										/*
@@ -290,6 +300,11 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 										 */
 										?>
 										<div class="anpr-player-host" data-anpr-track-index="0" id="<?php echo esc_attr( $dom . '-player' ); ?>"></div>
+										<?php if ( $mats['examples'] ) : ?>
+											<p class="anpr-example-note">
+												<?php echo esc_html( _n( 'The A+ example starts muted — press M on its track to hear it. It is never mixed into a take you save.', 'The A+ examples start muted — press M on a track to hear it. They are never mixed into a take you save.', count( $mats['examples'] ), 'ars-nova-practice' ) ); ?>
+											</p>
+										<?php endif; ?>
 										<div class="anpr-practice-bar">
 											<span class="anpr-plays" data-anpr-plays="<?php echo esc_attr( (string) $plays ); ?>">
 												<?php
@@ -307,8 +322,9 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 												<?php esc_html_e( 'This task has more than one practice track. Singers see the first one. Give each track its own task in the weekly builder.', 'ars-nova-practice' ); ?>
 											</p>
 										<?php endif; ?>
-										<script type="application/json" data-anpr-tracks><?php echo wp_json_encode( array_slice( $mats['tracks'], 0, 1 ), JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES ); ?></script>
+										<script type="application/json" data-anpr-tracks><?php echo wp_json_encode( $lanes, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES ); ?></script>
 										<?php
+										// Takes belong to the practice track's piece, not an example's.
 										$task_takes = array();
 										foreach ( array_slice( $mats['tracks'], 0, 1 ) as $track ) {
 											$task_takes[ $track['piece'] ] = isset( $block['takes'][ $track['piece'] ] ) ? $block['takes'][ $track['piece'] ] : array();

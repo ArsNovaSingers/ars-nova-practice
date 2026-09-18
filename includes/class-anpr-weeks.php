@@ -11,7 +11,7 @@
  *         status (draft|published), tasks[]
  *   task: id, title, detail, minutes, parts[] (voice parts; empty = everyone),
  *         materials[]
- *   material: id (a Hub material row id), role (track|open), part, pan
+ *   material: id (a Hub material row id), role (track|example|open), part, pan
  *         (left|center|right), muted (bool), and a title/piece/type
  *         snapshot used to find the row again if the Hub changes its id
  *
@@ -161,7 +161,10 @@ class ANPR_Weeks {
 			$pan           = isset( $m['pan'] ) ? (string) $m['pan'] : 'center';
 			$materials[]   = array(
 				'id'    => $mid,
-				'role'  => ( isset( $m['role'] ) && 'track' === $m['role'] ) ? 'track' : 'open',
+				// 0.8.0: 'example' is an A+ model recording Tom attaches beside the
+				// practice track. It plays as its own lane and is never mixed into
+				// a saved take.
+				'role'  => ( isset( $m['role'] ) && in_array( (string) $m['role'], array( 'track', 'example' ), true ) ) ? (string) $m['role'] : 'open',
 				'part'  => in_array( $part, $valid_parts, true ) ? $part : '',
 				'pan'   => in_array( $pan, array( 'left', 'center', 'right' ), true ) ? $pan : 'center',
 				'muted' => ! empty( $m['muted'] ),
@@ -181,6 +184,9 @@ class ANPR_Weeks {
 			'id'        => $id,
 			'title'     => $title,
 			'detail'    => isset( $t['detail'] ) ? sanitize_textarea_field( (string) $t['detail'] ) : '',
+			// 0.8.0 (Jonathan): Tom's own space on a task — as much or as little as
+			// he wants, shown in the same "From the director" box as the week note.
+			'note'      => isset( $t['note'] ) ? sanitize_textarea_field( (string) $t['note'] ) : '',
 			'video'     => self::clean_video( isset( $t['video'] ) ? $t['video'] : '' ),
 			'minutes'   => isset( $t['minutes'] ) ? max( 0, min( 600, (int) $t['minutes'] ) ) : 0,
 			'parts'     => $parts,
