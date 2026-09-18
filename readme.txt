@@ -4,7 +4,7 @@ Tags: choir, practice, assignments, rehearsal
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.8.0
+Stable tag: 0.8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -35,6 +35,9 @@ Drafts are shown to staff on the Hub page itself, so the Hub is the preview.
 The practice player is built on **@dawcore/components** from waveform-playlist by Naomi Aro (MIT License) — https://github.com/naomiaro/waveform-playlist. The built browser bundle is in `assets/player/`, with every bundled licence in `assets/player/THIRD-PARTY-LICENSES.txt` (MIT and BSD-3-Clause, plus waveform-data under LGPL-3.0). Its source, exact versions and build script are in the repository's `player-src/` folder, so the bundle can be rebuilt with any of those libraries replaced.
 
 == Changelog ==
+
+= 0.8.1 =
+* **The week's note from the director is shown to singers again.** The weekly builder has offered “Note from the director” since 0.1.0 and the singer's page stopped printing it in the 0.5.0 restructure, so anything Tom wrote to the whole choir went nowhere. Found on 2026-09-18 by a 0.8.0 test that counted one “From the director” box on a page that should have had two.
 
 = 0.8.0 =
 Tom's own space on a task, and an A+ example to sing against (Jonathan, 2026-09-18).

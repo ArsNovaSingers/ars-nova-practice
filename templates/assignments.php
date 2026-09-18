@@ -175,6 +175,22 @@ if ( ! function_exists( 'anpr_render_week' ) ) {
 				</div>
 			<?php endif; ?>
 
+			<?php
+			/*
+			 * The week's note from Tom. The weekly builder has had this field since
+			 * 0.1.0 and the singer's page never printed it — it was lost in the 0.5.0
+			 * restructure and found on 2026-09-18, when a 0.8.0 test counted one
+			 * "From the director" box on a page that should have had two. Anything
+			 * Tom wrote to the choir at week level went nowhere.
+			 */
+			if ( '' !== ( isset( $week['note'] ) ? $week['note'] : '' ) ) :
+				?>
+				<div class="anpr-note anpr-note--week">
+					<p class="anpr-note-label"><?php esc_html_e( 'From the director', 'ars-nova-practice' ); ?></p>
+					<?php echo wp_kses_post( wpautop( esc_html( $week['note'] ) ) ); ?>
+				</div>
+			<?php endif; ?>
+
 			<?php if ( empty( $tasks ) ) : ?>
 				<p class="anpr-empty"><?php esc_html_e( 'No tasks for your part this week.', 'ars-nova-practice' ); ?></p>
 			<?php else : ?>
