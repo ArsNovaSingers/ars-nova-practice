@@ -24,6 +24,25 @@ class ANPR_Frontend {
 	/** A+ example recordings Tom may attach beside a task's practice track (0.8.0). */
 	const MAX_EXAMPLES = 2;
 
+	/**
+	 * Does the viewer's material list hold anything of this kind?
+	 *
+	 * Used to tell "this one score was removed" from "the whole score library
+	 * came back empty" (0.8.5). See task_materials().
+	 *
+	 * @param array  $materials Rows keyed by id.
+	 * @param string $kind      Material type, e.g. sheet_music.
+	 * @return bool
+	 */
+	protected static function materials_have_type( $materials, $kind ) {
+		foreach ( (array) $materials as $row ) {
+			if ( isset( $row['type'] ) && (string) $row['type'] === $kind ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/** Cache of per-tab data, keyed by group slug. */
 	protected static $data = array();
 
@@ -283,7 +302,35 @@ class ANPR_Frontend {
 		foreach ( $task['materials'] as $m ) {
 			$row = ANPR_Weeks::resolve_material( $m, $materials, $project_id );
 			if ( null === $row ) {
-				continue; // Removed, or not something this viewer may see.
+				/*
+				 * Normally this means the material was removed from the concert, or
+				 * this viewer may not see it, and dropping it is right.
+				 *
+				 * But it also fires during a Hub outage. ANSP_Scores_Source::library()
+				 * caches the score library in a 5-minute transient and, when the fetch
+				 * fails, returns an EMPTY array and only logs — so a slow Cloud Run
+				 * cold start (warm calls already run ~3s against an 8s timeout) empties
+				 * every score from the materials list for that one request. Staging
+				 * showed exactly this twice: the score button silently absent on the
+				 * first page render after an idle period, present on every render
+				 * after. Dropping the task's score in silence is the worst answer —
+				 * the singer sees nothing and has nothing to act on.
+				 *
+				 * Telling the two apart: if the viewer's materials contain NO row of
+				 * this kind at all while the task expects one, the library is empty,
+				 * not the score deleted. Say so and let them reload.
+				 */
+				$kind = isset( $m['type'] ) ? (string) $m['type'] : '';
+				if ( '' !== $kind && ! self::materials_have_type( $materials, $kind ) ) {
+					$links[] = array(
+						'id'      => sanitize_key( (string) $m['id'] ),
+						'title'   => isset( $m['title'] ) ? (string) $m['title'] : '',
+						'url'     => '',
+						'type'    => $kind,
+						'pending' => true,
+					);
+				}
+				continue;
 			}
 			$rid   = sanitize_key( (string) $row['id'] );
 			$title = isset( $row['title'] ) ? (string) $row['title'] : '';
