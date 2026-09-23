@@ -4,7 +4,7 @@ Tags: choir, practice, assignments, rehearsal
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 0.8.5
+Stable tag: 0.8.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -35,6 +35,9 @@ Drafts are shown to staff on the Hub page itself, so the Hub is the preview.
 The practice player is built on **@dawcore/components** from waveform-playlist by Naomi Aro (MIT License) — https://github.com/naomiaro/waveform-playlist. The built browser bundle is in `assets/player/`, with every bundled licence in `assets/player/THIRD-PARTY-LICENSES.txt` (MIT and BSD-3-Clause, plus waveform-data under LGPL-3.0). Its source, exact versions and build script are in the repository's `player-src/` folder, so the bundle can be rebuilt with any of those libraries replaced.
 
 == Changelog ==
+
+= 0.8.6 =
+* 0.8.5's check keyed off the task's stored `type` snapshot, which is an empty string on any task seeded before 0.5.0 — so the fix silently never fired. It now reads the outage signature from the viewer's own material list instead. Proved against a simulated empty library, and a genuinely removed score still disappears.
 
 = 0.8.5 =
 * **A score no longer disappears in silence when the Hub's score library comes back empty.** The Hub caches its score library for five minutes and, when the refresh fails, returns an empty list and only writes a log line — so one slow Cloud Run cold start strips every score from the materials list for that single page load. The practice page then dropped the task's score button with nothing to explain it. Staging reproduced this twice: absent on the first render after an idle period, present on every render after. The task now shows “Score not ready” with the file name and a line telling the singer to reload, the same state 0.6.1 added for a score whose URL is not ready yet. A score genuinely removed from the concert still disappears, as it should — the two are told apart by whether the viewer's material list holds any score at all.

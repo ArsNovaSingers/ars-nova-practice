@@ -299,6 +299,12 @@ class ANPR_Frontend {
 		$links    = array();
 		$tracks   = array();
 		$examples = array();
+		/*
+		 * The outage signature, read from the viewer's own list rather than the
+		 * task's stored snapshot: tasks seeded before 0.5.0 carry an empty `type`,
+		 * so keying off the snapshot silently never fires (found on staging, 0.8.5).
+		 */
+		$library_empty = ! self::materials_have_type( $materials, 'sheet_music' );
 		foreach ( $task['materials'] as $m ) {
 			$row = ANPR_Weeks::resolve_material( $m, $materials, $project_id );
 			if ( null === $row ) {
@@ -320,13 +326,14 @@ class ANPR_Frontend {
 				 * this kind at all while the task expects one, the library is empty,
 				 * not the score deleted. Say so and let them reload.
 				 */
-				$kind = isset( $m['type'] ) ? (string) $m['type'] : '';
-				if ( '' !== $kind && ! self::materials_have_type( $materials, $kind ) ) {
+				if ( 'track' !== $m['role'] && 'example' !== $m['role'] && $library_empty ) {
+					$snap = isset( $m['title'] ) ? trim( (string) $m['title'] ) : '';
 					$links[] = array(
 						'id'      => sanitize_key( (string) $m['id'] ),
-						'title'   => isset( $m['title'] ) ? (string) $m['title'] : '',
+						/* translators: shown when the Hub's score library is briefly empty and the file name was never snapshotted. */
+						'title'   => '' !== $snap ? $snap : __( 'the score for this task', 'ars-nova-practice' ),
 						'url'     => '',
-						'type'    => $kind,
+						'type'    => isset( $m['type'] ) ? (string) $m['type'] : 'sheet_music',
 						'pending' => true,
 					);
 				}
